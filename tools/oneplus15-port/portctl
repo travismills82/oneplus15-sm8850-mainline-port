@@ -1,0 +1,509 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-2.0-only
+set -Eeuo pipefail
+
+SCRIPT_DIR="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=lib/common.sh
+source "${SCRIPT_DIR}/lib/common.sh"
+
+ROOT="$(kernel_root)"
+WORK_DIR="${ONEPLUS15_WORK_DIR:-${ROOT}/.port-work}"
+OUT_DIR="${ONEPLUS15_OUT_DIR:-${ROOT}/out/oneplus15-mainline}"
+ARTIFACT_DIR="${ONEPLUS15_ARTIFACT_DIR:-${ROOT}/artifacts/oneplus15}"
+SNAPSHOT_ROOT="${ONEPLUS15_SNAPSHOT_DIR:-${WORK_DIR}/device-snapshots}"
+
+usage() {
+  cat <<USAGE
+Usage: tools/oneplus15-port/portctl <command> [arguments]
+
+Commands:
+  doctor                 Check host tools, disk space, Git state, and ADB.
+  sync                   Fetch ACK and all three official OnePlus source trees.
+  snapshot               Capture rooted-device facts and /proc/config.gz over ADB.
+  stock-images           Read boot-related partitions to local files (never writes).
+  configure              Generate a mainline .config from defconfig + safe fragments.
+  build                  Build mainline Image, modules, and DTBs with make/LLVM.
+  reference-build        Attempt a non-Bazel build of the OEM common GKI kernel.
+  oem-report             Compare OEM common source with Linux v6.12.23.
+  sun-gap-report         Compare the OEM sun target with available mainline symbols and DT files.
+  refresh-oem            Update OEM source checkouts and refs.lock.
+  update-stable <tag>     Rebase the port commits onto another v6.12.x tag in a new branch.
+  publish                Push the current branch and baseline tag to origin.
+  all                    Run doctor, sync, optional snapshot, configure, and build.
+
+Environment overrides:
+  ONEPLUS15_WORK_DIR, ONEPLUS15_OUT_DIR, ONEPLUS15_ARTIFACT_DIR,
+  ONEPLUS15_SNAPSHOT_DIR, CONFIG_SOURCE, MERGE_STOCK_CONFIG=1, JOBS, LLVM_PREFIX.
+USAGE
+}
+
+cmd_doctor() {
+  local missing=() optional=()
+  local required=(git make clang ld.lld llvm-ar llvm-nm llvm-objcopy flex bison bc python3 rsync cpio gzip xz zstd openssl pahole)
+  local opt=(adb fastboot gh ccache dtc)
+  local t
+  for t in "${required[@]}"; do have "$t" || missing+=("$t"); done
+  for t in "${opt[@]}"; do have "$t" || optional+=("$t"); done
+
+  log "Kernel root: ${ROOT}"
+  log "Baseline: ${BASELINE_TAG}; port branch: ${PORT_BRANCH}; Qualcomm target: ${QUALCOMM_TARGET}"
+  if have clang; then log "$(clang --version | sed -n '1p')"; fi
+
+  local free_kb
+  free_kb=$(df -Pk "$ROOT" | awk 'NR==2 {print $4}')
+  if [[ ${free_kb:-0} -lt 62914560 ]]; then
+    warn "Less than 60 GiB free. OEM source plus build outputs can exceed this."
+  else
+    log "Disk free: $((free_kb / 1024 / 1024)) GiB"
+  fi
+
+  if ((${#missing[@]})); then
+    printf 'Missing required tools: %s\n' "${missing[*]}" >&2
+    printf 'Run tools/oneplus15-port/install-deps.sh --install, then retry.\n' >&2
+    return 2
+  fi
+  if ((${#optional[@]})); then warn "Optional tools not found: ${optional[*]}"; fi
+
+  if have adb; then
+    local state
+    state=$(adb get-state 2>/dev/null || true)
+    [[ "$state" == device ]] && log "ADB device connected." || warn "No authorized ADB device detected."
+  fi
+
+  git -C "$ROOT" rev-parse --verify "$BASELINE_TAG^{commit}" >/dev/null || \
+    warn "Baseline tag ${BASELINE_TAG} is not present locally yet."
+  log "Doctor check completed."
+}
+
+write_refs_lock() {
+  ensure_dir "$WORK_DIR"
+  local lock="${WORK_DIR}/refs.lock"
+  {
+    printf 'generated_utc=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    printf 'baseline=%s\n' "$(git -C "$ROOT" rev-parse "$BASELINE_TAG^{commit}")"
+    printf 'ack=%s\n' "$(git -C "${WORK_DIR}/ack-common" rev-parse HEAD)"
+    printf 'oneplus_common=%s\n' "$(git -C "${WORK_DIR}/oneplus-common" rev-parse HEAD)"
+    printf 'oneplus_soc=%s\n' "$(git -C "${WORK_DIR}/oneplus-soc" rev-parse HEAD)"
+    printf 'oneplus_modules=%s\n' "$(git -C "${WORK_DIR}/oneplus-modules" rev-parse HEAD)"
+  } > "$lock"
+  log "Wrote ${lock}"
+}
+
+verify_oem_version() {
+  local mf="${WORK_DIR}/oneplus-common/Makefile"
+  [[ -f "$mf" ]] || die "OEM common Makefile not found."
+  local v p s
+  v=$(awk '$1=="VERSION" {print $3; exit}' "$mf")
+  p=$(awk '$1=="PATCHLEVEL" {print $3; exit}' "$mf")
+  s=$(awk '$1=="SUBLEVEL" {print $3; exit}' "$mf")
+  log "OEM common kernel version: ${v}.${p}.${s}"
+  [[ "${v}.${p}.${s}" == "6.12.23" ]] || warn "OEM branch moved from 6.12.23; inspect before refreshing port patches."
+}
+
+cmd_sync() {
+  ensure_dir "$WORK_DIR"
+  remote_add_or_set "$ROOT" stable "$STABLE_URL"
+  git -C "$ROOT" fetch --filter=blob:none stable "refs/tags/${BASELINE_TAG}:refs/tags/${BASELINE_TAG}"
+
+  clone_or_update "$ACK_URL" "$ACK_BRANCH" "${WORK_DIR}/ack-common"
+  clone_or_update "$ONEPLUS_COMMON_URL" "$ONEPLUS_BRANCH" "${WORK_DIR}/oneplus-common"
+  clone_or_update "$ONEPLUS_SOC_URL" "$ONEPLUS_BRANCH" "${WORK_DIR}/oneplus-soc"
+  clone_or_update "$ONEPLUS_MODULES_URL" "$ONEPLUS_BRANCH" "${WORK_DIR}/oneplus-modules"
+
+  remote_add_or_set "$ROOT" oneplus-common "$ONEPLUS_COMMON_URL"
+  git -C "$ROOT" fetch --filter=blob:none --depth=1 oneplus-common \
+    "+refs/heads/${ONEPLUS_BRANCH}:refs/remotes/oneplus-common/source"
+
+  verify_oem_version
+  write_refs_lock
+}
+
+adb_require() {
+  have adb || die "adb is required."
+  [[ "$(adb get-state 2>/dev/null || true)" == device ]] || die "No authorized ADB device is connected."
+}
+
+adb_root_exec() {
+  adb exec-out su -c "$1"
+}
+
+cmd_snapshot() {
+  adb_require
+  local stamp dest
+  stamp=$(date -u +%Y%m%dT%H%M%SZ)
+  dest="${SNAPSHOT_ROOT}/${stamp}"
+  ensure_dir "$dest"
+
+  log "Capturing device snapshot to ${dest}"
+  adb shell getprop > "${dest}/getprop.txt"
+  adb shell uname -a > "${dest}/uname.txt"
+  adb shell cat /proc/version > "${dest}/proc-version.txt" 2>/dev/null || true
+  adb shell cat /proc/cmdline > "${dest}/proc-cmdline.txt" 2>/dev/null || true
+  adb shell cat /proc/bootconfig > "${dest}/proc-bootconfig.txt" 2>/dev/null || true
+  adb shell cat /proc/modules > "${dest}/proc-modules.txt" 2>/dev/null || true
+  adb shell cat /proc/partitions > "${dest}/proc-partitions.txt" 2>/dev/null || true
+  adb shell 'ls -l /dev/block/by-name 2>/dev/null || find /dev/block/platform -path "*/by-name/*" -maxdepth 6 -type l -ls 2>/dev/null' \
+    > "${dest}/partitions-by-name.txt" || true
+
+  if adb shell su -c id 2>/dev/null | grep -q 'uid=0'; then
+    printf 'rooted=yes\n' > "${dest}/root-status.txt"
+    adb_root_exec 'cat /proc/config.gz' > "${dest}/config.gz" 2>/dev/null || warn "Could not read /proc/config.gz."
+    adb_root_exec 'cat /proc/kallsyms' | gzip -1 > "${dest}/kallsyms.gz" 2>/dev/null || true
+    adb_root_exec 'dmesg' > "${dest}/dmesg.txt" 2>/dev/null || true
+    adb_root_exec 'find /vendor/lib/modules /vendor_dlkm/lib/modules /odm_dlkm/lib/modules /system_dlkm/lib/modules -type f -name "*.ko" -print 2>/dev/null' > "${dest}/module-files.txt" || true
+    adb_root_exec 'tar -C /sys/firmware/devicetree/base -cf - .' > "${dest}/device-tree.tar" 2>/dev/null || true
+    adb_root_exec 'cat /sys/firmware/devicetree/base/model' > "${dest}/dt-model.bin" 2>/dev/null || true
+    adb_root_exec 'cat /sys/firmware/devicetree/base/compatible' > "${dest}/dt-compatible.bin" 2>/dev/null || true
+    if [[ -s "${dest}/device-tree.tar" ]] && have dtc; then
+      ensure_dir "${dest}/device-tree-fs"
+      tar -xf "${dest}/device-tree.tar" -C "${dest}/device-tree-fs"
+      dtc -q -I fs -O dts -o "${dest}/running-device-tree.dts" "${dest}/device-tree-fs" 2>"${dest}/dtc.log" || \
+        warn "Could not convert the running device tree to DTS; raw files were retained."
+    fi
+  else
+    printf 'rooted=no\n' > "${dest}/root-status.txt"
+    warn "Root shell unavailable; snapshot is partial."
+  fi
+
+  {
+    printf 'snapshot_utc=%s\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    printf 'serial=%s\n' "$(adb get-serialno 2>/dev/null || true)"
+    printf 'slot_suffix=%s\n' "$(adb shell getprop ro.boot.slot_suffix | tr -d '\r')"
+    printf 'product_device=%s\n' "$(adb shell getprop ro.product.device | tr -d '\r')"
+    printf 'product_model=%s\n' "$(adb shell getprop ro.product.model | tr -d '\r')"
+    printf 'build_fingerprint=%s\n' "$(adb shell getprop ro.build.fingerprint | tr -d '\r')"
+  } > "${dest}/snapshot.meta"
+
+  ln -sfn "$dest" "${SNAPSHOT_ROOT}/latest"
+  log "Snapshot complete. No partition was written or flashed."
+}
+
+find_partition_path() {
+  local part=$1 slot=$2 candidate
+  for candidate in "/dev/block/by-name/${part}${slot}" "/dev/block/by-name/${part}"; do
+    if adb shell su -c "test -e '$candidate'" >/dev/null 2>&1; then
+      printf '%s\n' "$candidate"
+      return 0
+    fi
+  done
+  adb shell su -c "find /dev/block/platform -path '*/by-name/${part}${slot}' -o -path '*/by-name/${part}' 2>/dev/null | head -n1" | tr -d '\r'
+}
+
+cmd_stock_images() {
+  adb_require
+  adb shell su -c id 2>/dev/null | grep -q 'uid=0' || die "Root is required to read stock partitions."
+  local stamp dest slot part path out
+  stamp=$(date -u +%Y%m%dT%H%M%SZ)
+  dest="${WORK_DIR}/stock-images/${stamp}"
+  ensure_dir "$dest"
+  slot=$(adb shell getprop ro.boot.slot_suffix | tr -d '\r')
+  [[ "$slot" =~ ^_[ab]$ ]] || slot=""
+
+  for part in boot init_boot vendor_boot vendor_kernel_boot dtbo vbmeta vbmeta_system vbmeta_vendor recovery; do
+    path=$(find_partition_path "$part" "$slot" || true)
+    [[ -n "$path" ]] || { warn "Partition ${part}${slot} not found; skipping."; continue; }
+    out="${dest}/${part}${slot}.img"
+    log "Reading ${path} -> ${out}"
+    adb_root_exec "dd if='${path}' bs=4M 2>/dev/null" > "$out"
+    [[ -s "$out" ]] || { rm -f "$out"; warn "Read of ${part} produced an empty file."; continue; }
+    sha256_file "$out" >> "${dest}/SHA256SUMS"
+  done
+  ln -sfn "$dest" "${WORK_DIR}/stock-images/latest"
+  log "Stock image backup complete. This command only read partitions."
+}
+
+filter_fragment() {
+  local source=$1 output=$2 config_index=$3
+  : > "$output"
+  while IFS= read -r line; do
+    if [[ "$line" =~ ^CONFIG_([A-Za-z0-9_]+)=.*$ ]] || [[ "$line" =~ ^#\ CONFIG_([A-Za-z0-9_]+)\ is\ not\ set$ ]]; then
+      local symbol="CONFIG_${BASH_REMATCH[1]}"
+      grep -qx "$symbol" "$config_index" && printf '%s\n' "$line" >> "$output"
+    fi
+  done < "$source"
+}
+
+stock_symbol_is_safe() {
+  case "$1" in
+    CONFIG_CC_VERSION_TEXT|CONFIG_CC_IS_*|CONFIG_GCC_VERSION|CONFIG_CLANG_VERSION|\
+    CONFIG_AS_IS_*|CONFIG_AS_VERSION|CONFIG_LD_IS_*|CONFIG_LD_VERSION|CONFIG_LLD_VERSION|\
+    CONFIG_RUSTC_VERSION|CONFIG_RUSTC_LLVM_VERSION|CONFIG_PAHOLE_VERSION|\
+    CONFIG_WERROR|CONFIG_DRM_WERROR|CONFIG_TRIM_UNUSED_KSYMS|CONFIG_UNUSED_KSYMS_WHITELIST|\
+    CONFIG_MODULE_SIG_KEY|CONFIG_SYSTEM_TRUSTED_KEYS|CONFIG_SYSTEM_REVOCATION_KEYS|\
+    CONFIG_BUILD_SALT|CONFIG_LOCALVERSION_AUTO|CONFIG_LD_ORPHAN_WARN_LEVEL|CONFIG_CMDLINE)
+      return 1
+      ;;
+  esac
+  return 0
+}
+
+filter_stock_fragment() {
+  local source=$1 output=$2 config_index=$3
+  : > "$output"
+  while IFS= read -r line; do
+    # A stock Android config contains thousands of explicit "not set" choices.
+    # Applying those to upstream defconfig disables unrelated mainline platform
+    # support. Import positive values only, then layer the curated bring-up
+    # fragment afterwards.
+    if [[ "$line" =~ ^CONFIG_([A-Za-z0-9_]+)=.*$ ]]; then
+      local symbol="CONFIG_${BASH_REMATCH[1]}"
+      stock_symbol_is_safe "$symbol" || continue
+      grep -qx "$symbol" "$config_index" && printf '%s\n' "$line" >> "$output"
+    fi
+  done < "$source"
+}
+
+write_mainline_symbol_index() {
+  local index=$1
+  ensure_dir "$(dirname -- "$index")"
+  find "$ROOT" \
+    \( -path "$WORK_DIR" -o -path "$OUT_DIR" -o -path "$ARTIFACT_DIR" \) -prune -o \
+    -name 'Kconfig*' -type f -print0 | \
+    xargs -0 sed -nE 's/^[[:space:]]*(menu)?config[[:space:]]+([A-Za-z0-9_]+).*/CONFIG_\2/p' | \
+    sort -u > "$index"
+}
+
+latest_config_source() {
+  if [[ -n "${CONFIG_SOURCE:-}" ]]; then printf '%s\n' "$CONFIG_SOURCE"; return; fi
+  if [[ -f "${SNAPSHOT_ROOT}/latest/config.gz" ]]; then printf '%s\n' "${SNAPSHOT_ROOT}/latest/config.gz"; return; fi
+  printf '\n'
+}
+
+cmd_configure() {
+  ensure_dir "$OUT_DIR" "$ARTIFACT_DIR/config"
+  local j="${JOBS:-$(jobs)}"
+  log "Creating upstream arm64 defconfig"
+  make -C "$ROOT" O="$OUT_DIR" ARCH=arm64 LLVM=1 LLVM_IAS=1 -j"$j" defconfig
+
+  local index="${ARTIFACT_DIR}/config/mainline-symbols.txt"
+  write_mainline_symbol_index "$index"
+
+  local safe_filtered="${ARTIFACT_DIR}/config/mainline-android.filtered.fragment"
+  local device_filtered="${ARTIFACT_DIR}/config/oneplus15.filtered.fragment"
+  filter_fragment "${SCRIPT_DIR}/configs/mainline-android.fragment" "$safe_filtered" "$index"
+  filter_fragment "${SCRIPT_DIR}/configs/oneplus15.fragment" "$device_filtered" "$index"
+
+  local fragments=("$safe_filtered")
+  local stock stock_txt stock_filtered
+  stock=$(latest_config_source)
+  if [[ -n "$stock" && -f "$stock" ]]; then
+    stock_txt="${ARTIFACT_DIR}/config/stock.config"
+    if [[ "$stock" == *.gz ]]; then gzip -dc "$stock" > "$stock_txt"; else cp "$stock" "$stock_txt"; fi
+    stock_filtered="${ARTIFACT_DIR}/config/stock-mainline.filtered.fragment"
+    filter_stock_fragment "$stock_txt" "$stock_filtered" "$index"
+    if [[ "${MERGE_STOCK_CONFIG:-0}" == 1 ]]; then
+      fragments+=("$stock_filtered")
+      log "Merging compatible options from ${stock}"
+    else
+      log "Generated ${stock_filtered}; set MERGE_STOCK_CONFIG=1 to merge it."
+    fi
+  else
+    warn "No stock config found. Run 'portctl snapshot' or set CONFIG_SOURCE."
+  fi
+
+  # Keep the curated OnePlus bring-up fragment last so it wins over any stock
+  # value that would disable upstream Qualcomm infrastructure.
+  fragments+=("$device_filtered")
+
+  "$ROOT/scripts/kconfig/merge_config.sh" -m -O "$OUT_DIR" "$OUT_DIR/.config" "${fragments[@]}" \
+    | tee "${ARTIFACT_DIR}/config/merge-config.log"
+
+  # These Android/KMI settings either depend on generated Kleaf artifacts or
+  # turn harmless host-tool warnings into fatal errors. Keep them disabled for
+  # the plain-Kbuild mainline bring-up branch.
+  "$ROOT/scripts/config" --file "$OUT_DIR/.config" \
+    --disable WERROR \
+    --disable DRM_WERROR \
+    --disable TRIM_UNUSED_KSYMS \
+    --set-str UNUSED_KSYMS_WHITELIST "" \
+    --disable LOCALVERSION_AUTO
+
+  make -C "$ROOT" O="$OUT_DIR" ARCH=arm64 LLVM=1 LLVM_IAS=1 olddefconfig
+  cp "$OUT_DIR/.config" "${ARTIFACT_DIR}/config/mainline.config"
+  log "Configuration ready: ${OUT_DIR}/.config"
+}
+
+cmd_build() {
+  [[ -f "$OUT_DIR/.config" ]] || cmd_configure
+  ensure_dir "$ARTIFACT_DIR/build" "$ARTIFACT_DIR/modules"
+  local j="${JOBS:-$(jobs)}"
+  local make_env=(ARCH=arm64 LLVM=1 LLVM_IAS=1)
+  [[ -n "${LLVM_PREFIX:-}" ]] && make_env+=(LLVM="${LLVM_PREFIX}")
+
+  set -o pipefail
+  make -C "$ROOT" O="$OUT_DIR" "${make_env[@]}" -j"$j" Image modules dtbs \
+    2>&1 | tee "${ARTIFACT_DIR}/build/build.log"
+
+  make -C "$ROOT" O="$OUT_DIR" "${make_env[@]}" \
+    INSTALL_MOD_PATH="${ARTIFACT_DIR}/modules" modules_install \
+    2>&1 | tee "${ARTIFACT_DIR}/build/modules-install.log"
+
+  cp "$OUT_DIR/arch/arm64/boot/Image" "${ARTIFACT_DIR}/build/Image"
+  cp "$OUT_DIR/.config" "${ARTIFACT_DIR}/build/config"
+  cp "$OUT_DIR/System.map" "${ARTIFACT_DIR}/build/System.map"
+  if [[ -f "$OUT_DIR/include/config/kernel.release" ]]; then
+    cp "$OUT_DIR/include/config/kernel.release" "${ARTIFACT_DIR}/build/kernel.release"
+  fi
+
+  rm -rf "${ARTIFACT_DIR}/build/dtbs"
+  if [[ -d "$OUT_DIR/arch/arm64/boot/dts" ]]; then
+    while IFS= read -r -d '' dt; do
+      local rel="${dt#${OUT_DIR}/arch/arm64/boot/dts/}"
+      install -D -m 0644 "$dt" "${ARTIFACT_DIR}/build/dtbs/${rel}"
+    done < <(find "$OUT_DIR/arch/arm64/boot/dts" -type f \( -name '*.dtb' -o -name '*.dtbo' \) -print0)
+  fi
+
+  [[ -f "$OUT_DIR/vmlinux" ]] && sha256_file "$OUT_DIR/vmlinux" > "${ARTIFACT_DIR}/build/vmlinux.sha256"
+  (cd "${ARTIFACT_DIR}/build" && sha256_file Image config System.map > SHA256SUMS)
+  if [[ -d "${ARTIFACT_DIR}/build/dtbs" ]]; then
+    (cd "${ARTIFACT_DIR}/build" && find dtbs -type f -print0 | sort -z | xargs -0 sha256_file > DTB_SHA256SUMS)
+  fi
+  log "Build complete: ${ARTIFACT_DIR}/build"
+}
+
+cmd_reference_build() {
+  [[ -d "${WORK_DIR}/oneplus-common" ]] || cmd_sync
+  local src="${WORK_DIR}/oneplus-common"
+  local out="${WORK_DIR}/out/oem-common"
+  local j="${JOBS:-$(jobs)}"
+  ensure_dir "$out" "${ARTIFACT_DIR}/oem-reference"
+  [[ -f "$src/arch/arm64/configs/gki_defconfig" ]] || die "OEM gki_defconfig was not found. Run the official Kleaf build if the source layout changed."
+
+  log "Building OEM common GKI directly with GNU make (no Bazel)."
+  make -C "$src" O="$out" ARCH=arm64 LLVM=1 LLVM_IAS=1 gki_defconfig
+  make -C "$src" O="$out" ARCH=arm64 LLVM=1 LLVM_IAS=1 -j"$j" Image modules \
+    2>&1 | tee "${ARTIFACT_DIR}/oem-reference/build.log"
+  cp "$out/arch/arm64/boot/Image" "${ARTIFACT_DIR}/oem-reference/Image" || true
+  cp "$out/.config" "${ARTIFACT_DIR}/oem-reference/config" || true
+  log "OEM common reference build finished. Vendor modules/DT remain a separate porting phase."
+}
+
+cmd_oem_report() {
+  [[ -d "${WORK_DIR}/oneplus-common" ]] || cmd_sync
+  ensure_dir "${ARTIFACT_DIR}/reports"
+  local ref="refs/remotes/oneplus-common/source"
+  git -C "$ROOT" rev-parse --verify "$ref^{commit}" >/dev/null || cmd_sync
+  {
+    printf '# OnePlus common vs Linux %s\n\n' "$BASELINE_TAG"
+    printf 'Generated: %s\n\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    printf '## Short summary\n\n```\n'
+    git -C "$ROOT" diff --shortstat "$BASELINE_TAG" "$ref"
+    printf '```\n\n## Top-level change counts\n\n```\n'
+    git -C "$ROOT" diff --dirstat=files,0 "$BASELINE_TAG" "$ref" | sed -n '1,200p'
+    printf '```\n\n## Changed files\n\n```\n'
+    git -C "$ROOT" diff --name-status "$BASELINE_TAG" "$ref"
+    printf '```\n'
+  } > "${ARTIFACT_DIR}/reports/oem-common-vs-${BASELINE_TAG}.md"
+  git -C "$ROOT" diff --binary "$BASELINE_TAG" "$ref" | zstd -T0 -10 -q \
+    -o "${ARTIFACT_DIR}/reports/oem-common-vs-${BASELINE_TAG}.patch.zst"
+  log "Wrote OEM comparison report and compressed binary patch under ${ARTIFACT_DIR}/reports"
+}
+
+
+cmd_sun_gap_report() {
+  [[ -d "${WORK_DIR}/oneplus-soc" && -d "${WORK_DIR}/oneplus-modules" ]] || cmd_sync
+  ensure_dir "${ARTIFACT_DIR}/reports" "${ARTIFACT_DIR}/config"
+
+  local index="${ARTIFACT_DIR}/config/mainline-symbols.txt"
+  write_mainline_symbol_index "$index"
+
+  local oem_cfg="${WORK_DIR}/oneplus-soc/configs/sun_perf.bzl"
+  [[ -f "$oem_cfg" ]] || die "OEM sun config not found: ${oem_cfg}"
+
+  local oem_symbols="${ARTIFACT_DIR}/reports/sun-oem-config-symbols.txt"
+  local supported="${ARTIFACT_DIR}/reports/sun-mainline-supported-symbols.txt"
+  local missing="${ARTIFACT_DIR}/reports/sun-mainline-missing-symbols.txt"
+  local source_files="${ARTIFACT_DIR}/reports/sun-source-files.txt"
+  local dt_files="${ARTIFACT_DIR}/reports/canoe-device-tree-files.txt"
+  local report="${ARTIFACT_DIR}/reports/sun-gap-report.md"
+
+  grep -oE '"CONFIG_[A-Za-z0-9_]+"' "$oem_cfg" | tr -d '"' | sort -u > "$oem_symbols"
+  comm -12 "$oem_symbols" "$index" > "$supported"
+  comm -23 "$oem_symbols" "$index" > "$missing"
+
+  find "${WORK_DIR}/oneplus-soc" -type f \
+    \( -name '*sun*.c' -o -name '*sun*.h' \) \
+    -printf '%P\n' | sort -u > "$source_files"
+
+  find "${WORK_DIR}/oneplus-modules/kernel_platform/qcom/opensource/devicetree" -type f \
+    \( -name 'canoe*.dts' -o -name 'canoe*.dtsi' -o -name 'canoe*.dtso' -o -path '*/bindings/*canoe*' \) \
+    -printf '%P\n' | sort -u > "$dt_files"
+
+  {
+    printf '# Qualcomm sun / canoe mainline gap report\n\n'
+    printf 'Generated: %s\n\n' "$(date -u +%Y-%m-%dT%H:%M:%SZ)"
+    printf '* OEM sun config symbols: %s\n' "$(wc -l < "$oem_symbols")"
+    printf '* Symbols already known to this mainline tree: %s\n' "$(wc -l < "$supported")"
+    printf '* OEM symbols missing from this mainline tree: %s\n' "$(wc -l < "$missing")"
+    printf '* OEM sun-named source files: %s\n' "$(wc -l < "$source_files")"
+    printf '* canoe DTS/binding files: %s\n\n' "$(wc -l < "$dt_files")"
+    printf '## Missing OEM config symbols\n\n```\n'
+    cat "$missing"
+    printf '```\n\n## OEM sun source files\n\n```\n'
+    cat "$source_files"
+    printf '```\n\n## canoe device-tree and binding files\n\n```\n'
+    cat "$dt_files"
+    printf '```\n'
+  } > "$report"
+
+  log "Wrote ${report}"
+}
+
+cmd_refresh_oem() {
+  cmd_sync
+  cmd_oem_report
+}
+
+cmd_update_stable() {
+  local new_tag=${1:-}
+  [[ "$new_tag" =~ ^v6\.12\.[0-9]+$ ]] || die "Supply a v6.12.x tag, for example: v6.12.35"
+  require_clean_tree "$ROOT"
+  remote_add_or_set "$ROOT" stable "$STABLE_URL"
+  git -C "$ROOT" fetch --filter=blob:none stable "refs/tags/${new_tag}:refs/tags/${new_tag}"
+  local current backup new_branch
+  current=$(git -C "$ROOT" branch --show-current)
+  backup="backup/${current//\//-}-$(date -u +%Y%m%dT%H%M%SZ)"
+  new_branch="rebase/${new_tag}"
+  git -C "$ROOT" branch "$backup" "$current"
+  git -C "$ROOT" checkout -B "$new_branch" "$current"
+  git -C "$ROOT" rebase --onto "$new_tag" "$BASELINE_TAG" "$new_branch"
+  log "Created ${new_branch}, rebased onto ${new_tag}. Original state saved as ${backup}."
+  log "Build and test this branch before replacing ${PORT_BRANCH}."
+}
+
+cmd_publish() {
+  git -C "$ROOT" remote get-url origin >/dev/null 2>&1 || die "No origin remote. Run bootstrap.sh without --skip-github or add origin manually."
+  local branch
+  branch=$(git -C "$ROOT" branch --show-current)
+  git -C "$ROOT" push -u origin "$branch"
+  git -C "$ROOT" push origin "$BASELINE_MARKER_TAG" || true
+  log "Published ${branch}."
+}
+
+cmd_all() {
+  cmd_doctor
+  cmd_sync
+  if have adb && [[ "$(adb get-state 2>/dev/null || true)" == device ]]; then cmd_snapshot; fi
+  cmd_configure
+  cmd_build
+}
+
+command=${1:-}
+shift || true
+case "$command" in
+  doctor) cmd_doctor "$@" ;;
+  sync) cmd_sync "$@" ;;
+  snapshot) cmd_snapshot "$@" ;;
+  stock-images) cmd_stock_images "$@" ;;
+  configure) cmd_configure "$@" ;;
+  build) cmd_build "$@" ;;
+  reference-build) cmd_reference_build "$@" ;;
+  oem-report) cmd_oem_report "$@" ;;
+  sun-gap-report) cmd_sun_gap_report "$@" ;;
+  refresh-oem) cmd_refresh_oem "$@" ;;
+  update-stable) cmd_update_stable "$@" ;;
+  publish) cmd_publish "$@" ;;
+  all) cmd_all "$@" ;;
+  -h|--help|help|'') usage ;;
+  *) usage >&2; die "Unknown command: ${command}" ;;
+esac
