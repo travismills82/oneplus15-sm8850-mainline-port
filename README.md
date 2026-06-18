@@ -57,7 +57,15 @@ The OEM source contains both `sun` and `canoe` targets. The OnePlus product mapp
 - USB, display, GPU, camera, audio, modem, Wi-Fi, Bluetooth, sensors, charging, suspend, or thermal management.
 - Android userspace compatibility.
 
-See [docs/STATUS.md](docs/STATUS.md) for the detailed subsystem matrix and [docs/ROADMAP.md](docs/ROADMAP.md) for the planned order of work.
+## Documentation
+
+- [Build and report workflow](docs/BUILDING.md)
+- [Detailed subsystem status](docs/STATUS.md)
+- [Staged bring-up roadmap](docs/ROADMAP.md)
+- [Compact-history Git workflow](docs/GIT_WORKFLOW.md)
+- [Device safety and hardware-testing policy](docs/SAFETY.md)
+- [Source references and provenance](docs/SOURCE_REFERENCES.md)
+- [Contribution and validation guidelines](CONTRIBUTING.md)
 
 ## Repository layout
 
@@ -83,11 +91,15 @@ Generated output directories are intentionally excluded from source commits.
 | `bringup/canoe-ufs` | Planned UFS framework and PHY validation |
 | `backup/*-full-history` | Local-only safety branches retaining the original Linux history |
 
-Because this repository was created from a compact source snapshot, development branches should remain based on the repository's compact `main` history. Pushing a branch based on the full upstream Linux history may attempt to enumerate and upload millions of objects.
+Because this repository was created from a compact source snapshot, development branches should remain based on the repository's compact `main` history. Pushing a branch based on the full upstream Linux history may attempt to enumerate and upload millions of objects. Read [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) before publishing a development branch.
 
 ## Getting started
 
-Read [docs/BUILDING.md](docs/BUILDING.md) before building.
+Run the host check first:
+
+```bash
+./tools/oneplus15-port/portctl doctor
+```
 
 Typical setup from the repository root:
 
@@ -103,6 +115,8 @@ The exact helper commands available may change as the bring-up tooling evolves. 
 ./tools/oneplus15-port/portctl help
 ```
 
+Read [docs/BUILDING.md](docs/BUILDING.md) for prerequisites, environment overrides, reports, and build-success criteria.
+
 ## Development rules
 
 1. Do not flash compile-only artifacts.
@@ -112,12 +126,13 @@ The exact helper commands available may change as the bring-up tooling evolves. 
 5. Preserve the first complete compiler log for every failed probe.
 6. Keep generated reports out of source commits unless they document a reproducible milestone.
 7. Prefer mainline abstractions over carrying downstream support frameworks.
+8. Update `docs/STATUS.md` whenever a subsystem milestone changes.
 
-See [CONTRIBUTING.md](CONTRIBUTING.md) for commit and testing expectations.
+See [CONTRIBUTING.md](CONTRIBUTING.md) for commit and testing expectations and [docs/SAFETY.md](docs/SAFETY.md) before considering any device test.
 
 ## Source references
 
-The bring-up work compares this tree with the public OnePlus/Qualcomm Android 16 sources for SM8850, including the common kernel, SoC kernel, and modules/device-tree repositories. Those sources are references only; this project does not aim to reproduce the downstream kernel wholesale.
+The bring-up work compares this tree with public Android Common Kernel and OnePlus SM8850 sources. Those repositories are references only; this project does not aim to reproduce the downstream kernel wholesale. Exact source roles, branch names, revision locking, and import rules are documented in [docs/SOURCE_REFERENCES.md](docs/SOURCE_REFERENCES.md).
 
 ## License
 
