@@ -1043,6 +1043,10 @@ properties:
           - const: qcom,sm8550
 
       - items:
+          - const: oneplus,oneplus-15
+          - const: qcom,canoe
+
+      - items:
           - enum:
               - qcom,sm8650-hdk
               - qcom,sm8650-mtp
