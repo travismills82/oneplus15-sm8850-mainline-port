@@ -1,0 +1,104 @@
+# SPDX-License-Identifier: (GPL-2.0 OR BSD-2-Clause)
+%YAML 1.2
+---
+$id: http://devicetree.org/schemas/interconnect/qcom,canoe-rpmh.yaml#
+$schema: http://devicetree.org/meta-schemas/core.yaml#
+
+title: Qualcomm Canoe RPMh Network-On-Chip Interconnect
+
+maintainers:
+  - Travis Mills <travismills82@gmail.com>
+
+description: |
+  RPMh interconnect providers on Canoe expose the HLOS-voted Network-On-Chip
+  fabrics. Camera, display and PCIe CRM hardware-voter domains are not
+  described by this binding.
+
+  The Canoe aggregate NoC combines the downstream aggre1 and aggre2 logical
+  provider labels into one physical register block.
+
+  See also:
+    include/dt-bindings/interconnect/qcom,canoe-rpmh.h
+
+properties:
+  compatible:
+    enum:
+      - qcom,canoe-aggre-noc
+      - qcom,canoe-clk-virt
+      - qcom,canoe-cnoc-cfg
+      - qcom,canoe-cnoc-main
+      - qcom,canoe-gem-noc
+      - qcom,canoe-lpass-ag-noc
+      - qcom,canoe-lpass-lpiaon-noc
+      - qcom,canoe-lpass-lpicx-noc
+      - qcom,canoe-mc-virt
+      - qcom,canoe-mmss-noc
+      - qcom,canoe-nsp-noc
+      - qcom,canoe-pcie-anoc
+      - qcom,canoe-system-noc
+
+  reg:
+    maxItems: 1
+
+  clocks:
+    minItems: 2
+    maxItems: 3
+
+required:
+  - compatible
+
+allOf:
+  - $ref: qcom,rpmh-common.yaml#
+
+  - if:
+      properties:
+        compatible:
+          enum:
+            - qcom,canoe-clk-virt
+            - qcom,canoe-mc-virt
+    then:
+      properties:
+        reg: false
+    else:
+      required:
+        - reg
+
+  - if:
+      properties:
+        compatible:
+          const: qcom,canoe-aggre-noc
+    then:
+      properties:
+        clocks:
+          items:
+            - description: aggregate UFS PHY AXI clock
+            - description: aggregate USB3 primary AXI clock
+            - description: RPMh IPA clock
+      required:
+        - clocks
+
+  - if:
+      properties:
+        compatible:
+          const: qcom,canoe-pcie-anoc
+    then:
+      properties:
+        clocks:
+          items:
+            - description: aggregate NoC PCIe AXI clock
+            - description: config NoC PCIe aNoC AHB clock
+      required:
+        - clocks
+
+  - if:
+      not:
+        properties:
+          compatible:
+            enum:
+              - qcom,canoe-aggre-noc
+              - qcom,canoe-pcie-anoc
+    then:
+      properties:
+        clocks: false
+
+unevaluatedProperties: false
