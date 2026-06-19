@@ -16,6 +16,7 @@ description:
 properties:
   compatible:
     enum:
+      - qcom,canoe-qmp-ufs-phy
       - qcom,msm8996-qmp-ufs-phy
       - qcom,msm8998-qmp-ufs-phy
       - qcom,sa8775p-qmp-ufs-phy
@@ -84,6 +85,7 @@ allOf:
         compatible:
           contains:
             enum:
+              - qcom,canoe-qmp-ufs-phy
               - qcom,msm8998-qmp-ufs-phy
               - qcom,sa8775p-qmp-ufs-phy
               - qcom,sc7180-qmp-ufs-phy
