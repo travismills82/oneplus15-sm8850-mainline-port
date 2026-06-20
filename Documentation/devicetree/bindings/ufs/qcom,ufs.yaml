@@ -23,6 +23,7 @@ properties:
   compatible:
     items:
       - enum:
+          - qcom,canoe-ufshc
           - qcom,msm8994-ufshc
           - qcom,msm8996-ufshc
           - qcom,msm8998-ufshc
@@ -83,12 +84,14 @@ properties:
 
   reg:
     minItems: 1
-    maxItems: 2
+    maxItems: 4
 
   reg-names:
     items:
       - const: std
       - const: ice
+      - const: mcq_sqd
+      - const: mcq_vs
 
   required-opps:
     maxItems: 1
@@ -114,6 +117,36 @@ required:
 
 allOf:
   - $ref: ufs-common.yaml
+
+  - if:
+      properties:
+        compatible:
+          contains:
+            const: qcom,canoe-ufshc
+    then:
+      properties:
+        clocks:
+          minItems: 9
+          maxItems: 9
+        clock-names:
+          items:
+            - const: core_clk
+            - const: bus_aggr_clk
+            - const: iface_clk
+            - const: core_clk_unipro
+            - const: core_clk_ice
+            - const: ref_clk
+            - const: tx_lane0_sync_clk
+            - const: rx_lane0_sync_clk
+            - const: rx_lane1_sync_clk
+        reg:
+          minItems: 4
+          maxItems: 4
+        reg-names:
+          minItems: 4
+          maxItems: 4
+      required:
+        - reg-names
 
   - if:
       properties:
@@ -269,23 +302,37 @@ allOf:
     # TODO: define clock bindings for qcom,msm8994-ufshc
 
   - if:
-      required:
-        - qcom,ice
+      properties:
+        compatible:
+          contains:
+            const: qcom,canoe-ufshc
     then:
       properties:
         reg:
-          maxItems: 1
+          minItems: 4
+          maxItems: 4
         clocks:
-          minItems: 7
-          maxItems: 8
-    else:
-      properties:
-        reg:
-          minItems: 1
-          maxItems: 2
-        clocks:
-          minItems: 7
+          minItems: 9
           maxItems: 9
+    else:
+      if:
+        required:
+          - qcom,ice
+      then:
+        properties:
+          reg:
+            maxItems: 1
+          clocks:
+            minItems: 7
+            maxItems: 8
+      else:
+        properties:
+          reg:
+            minItems: 1
+            maxItems: 2
+          clocks:
+            minItems: 7
+            maxItems: 9
 
 unevaluatedProperties: false
 
