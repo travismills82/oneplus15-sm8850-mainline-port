@@ -344,6 +344,7 @@ static const struct clk_ops clk_rpmh_bcm_ops = {
 DEFINE_CLK_RPMH_ARC(bi_tcxo, "xo.lvl", 0x3, 1);
 DEFINE_CLK_RPMH_ARC(bi_tcxo, "xo.lvl", 0x3, 2);
 DEFINE_CLK_RPMH_ARC(bi_tcxo, "xo.lvl", 0x3, 4);
+DEFINE_CLK_RPMH_ARC(xo_pad, "xo.lvl", 0x3, 2);
 DEFINE_CLK_RPMH_ARC(qlink, "qphy.lvl", 0x1, 4);
 
 DEFINE_CLK_RPMH_VRM(ln_bb_clk1, _a2, "lnbclka1", 2);
@@ -388,6 +389,38 @@ DEFINE_CLK_RPMH_BCM(hwkm, "HK0");
 DEFINE_CLK_RPMH_BCM(ipa, "IP0");
 DEFINE_CLK_RPMH_BCM(pka, "PKA0");
 DEFINE_CLK_RPMH_BCM(qpic_clk, "QP0");
+
+static const struct clk_parent_data canoe_xo_pad_parent = {
+	.fw_name = "xo_pad",
+	.name = "xo_pad",
+};
+
+static const struct clk_parent_data canoe_xo_pad_ao_parent = {
+	.fw_name = "xo_pad_ao",
+	.name = "xo_pad_ao",
+};
+
+static struct clk_fixed_factor canoe_bi_tcxo = {
+	.mult = 1,
+	.div = 2,
+	.hw.init = &(struct clk_init_data){
+		.ops = &clk_fixed_factor_ops,
+		.name = "bi_tcxo",
+		.parent_data = &canoe_xo_pad_parent,
+		.num_parents = 1,
+	},
+};
+
+static struct clk_fixed_factor canoe_bi_tcxo_ao = {
+	.mult = 1,
+	.div = 2,
+	.hw.init = &(struct clk_init_data){
+		.ops = &clk_fixed_factor_ops,
+		.name = "bi_tcxo_ao",
+		.parent_data = &canoe_xo_pad_ao_parent,
+		.num_parents = 1,
+	},
+};
 
 static struct clk_hw *sar2130p_rpmh_clocks[] = {
 	[RPMH_CXO_CLK]		= &clk_rpmh_bi_tcxo_div1.hw,
@@ -785,6 +818,18 @@ static const struct clk_rpmh_desc clk_rpmh_sm4450 = {
 	.num_clks = ARRAY_SIZE(sm4450_rpmh_clocks),
 };
 
+static struct clk_hw *canoe_rpmh_clocks[] = {
+	[RPMH_CXO_CLK]		= &canoe_bi_tcxo.hw,
+	[RPMH_CXO_CLK_A]	= &canoe_bi_tcxo_ao.hw,
+	[RPMH_CXO_PAD_CLK]	= &clk_rpmh_xo_pad_div2.hw,
+	[RPMH_CXO_PAD_CLK_A]	= &clk_rpmh_xo_pad_div2_ao.hw,
+};
+
+static const struct clk_rpmh_desc clk_rpmh_canoe = {
+	.clks = canoe_rpmh_clocks,
+	.num_clks = ARRAY_SIZE(canoe_rpmh_clocks),
+};
+
 static struct clk_hw *x1e80100_rpmh_clocks[] = {
 	[RPMH_CXO_CLK]		= &clk_rpmh_bi_tcxo_div2.hw,
 	[RPMH_CXO_CLK_A]	= &clk_rpmh_bi_tcxo_div2_ao.hw,
@@ -818,6 +863,9 @@ static struct clk_hw *of_clk_rpmh_hw_get(struct of_phandle_args *clkspec,
 		return ERR_PTR(-EINVAL);
 	}
 
+	if (!rpmh->clks[idx])
+		return ERR_PTR(-ENOENT);
+
 	return rpmh->clks[idx];
 }
 
@@ -845,29 +893,34 @@ static int clk_rpmh_probe(struct platform_device *pdev)
 
 		name = hw_clks[i]->init->name;
 
-		rpmh_clk = to_clk_rpmh(hw_clks[i]);
-		res_addr = cmd_db_read_addr(rpmh_clk->res_name);
-		if (!res_addr) {
-			dev_err(&pdev->dev, "missing RPMh resource address for %s\n",
-				rpmh_clk->res_name);
-			return -ENODEV;
+		if (hw_clks[i]->init->ops != &clk_fixed_factor_ops) {
+			rpmh_clk = to_clk_rpmh(hw_clks[i]);
+			res_addr = cmd_db_read_addr(rpmh_clk->res_name);
+			if (!res_addr) {
+				dev_err(&pdev->dev,
+					"missing RPMh resource address for %s\n",
+					rpmh_clk->res_name);
+				return -ENODEV;
+			}
+
+			data = cmd_db_read_aux_data(rpmh_clk->res_name,
+						    &aux_data_len);
+			if (IS_ERR(data)) {
+				ret = PTR_ERR(data);
+				dev_err(&pdev->dev,
+					"error reading RPMh aux data for %s (%d)\n",
+					rpmh_clk->res_name, ret);
+				return ret;
+			}
+
+			/* Convert unit from Khz to Hz */
+			if (aux_data_len == sizeof(*data))
+				rpmh_clk->unit =
+					le32_to_cpu(data->unit) * 1000ULL;
+
+			rpmh_clk->res_addr += res_addr;
+			rpmh_clk->dev = &pdev->dev;
 		}
-
-		data = cmd_db_read_aux_data(rpmh_clk->res_name, &aux_data_len);
-		if (IS_ERR(data)) {
-			ret = PTR_ERR(data);
-			dev_err(&pdev->dev,
-				"error reading RPMh aux data for %s (%d)\n",
-				rpmh_clk->res_name, ret);
-			return ret;
-		}
-
-		/* Convert unit from Khz to Hz */
-		if (aux_data_len == sizeof(*data))
-			rpmh_clk->unit = le32_to_cpu(data->unit) * 1000ULL;
-
-		rpmh_clk->res_addr += res_addr;
-		rpmh_clk->dev = &pdev->dev;
 
 		ret = devm_clk_hw_register(&pdev->dev, hw_clks[i]);
 		if (ret) {
@@ -910,6 +963,7 @@ static const struct of_device_id clk_rpmh_match_table[] = {
 	{ .compatible = "qcom,sm8550-rpmh-clk", .data = &clk_rpmh_sm8550},
 	{ .compatible = "qcom,sm8650-rpmh-clk", .data = &clk_rpmh_sm8650},
 	{ .compatible = "qcom,sc7280-rpmh-clk", .data = &clk_rpmh_sc7280},
+	{ .compatible = "qcom,canoe-rpmh-clk", .data = &clk_rpmh_canoe},
 	{ .compatible = "qcom,x1e80100-rpmh-clk", .data = &clk_rpmh_x1e80100},
 	{ }
 };
