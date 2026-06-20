@@ -384,6 +384,8 @@ DEFINE_CLK_RPMH_VRM(clk8, _a2, "clka8", 2);
 
 DEFINE_CLK_RPMH_VRM(div_clk1, _div2, "divclka1", 2);
 
+DEFINE_CLK_RPMH_VRM(c8a_e0, _div2, "C8A_E0", 2);
+
 DEFINE_CLK_RPMH_BCM(ce, "CE0");
 DEFINE_CLK_RPMH_BCM(hwkm, "HK0");
 DEFINE_CLK_RPMH_BCM(ipa, "IP0");
@@ -823,6 +825,8 @@ static struct clk_hw *canoe_rpmh_clocks[] = {
 	[RPMH_CXO_CLK_A]	= &canoe_bi_tcxo_ao.hw,
 	[RPMH_CXO_PAD_CLK]	= &clk_rpmh_xo_pad_div2.hw,
 	[RPMH_CXO_PAD_CLK_A]	= &clk_rpmh_xo_pad_div2_ao.hw,
+	[RPMH_LN_BB_CLK3]	= &clk_rpmh_c8a_e0_div2.hw,
+	[RPMH_LN_BB_CLK3_A]	= &clk_rpmh_c8a_e0_div2_ao.hw,
 };
 
 static const struct clk_rpmh_desc clk_rpmh_canoe = {
