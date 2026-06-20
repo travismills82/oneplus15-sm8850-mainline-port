@@ -209,6 +209,30 @@
 				compatible = "qcom,canoe-rpmh-clk";
 				#clock-cells = <1>;
 			};
+
+			pmh0110_d: regulators-0 {
+				compatible = "qcom,pmh0110-rpmh-regulators";
+				qcom,pmic-id = "D_E0";
+				status = "disabled";
+
+				L1D: ldo1 {
+					regulator-name = "pmh0110_d_l1";
+					regulator-min-microvolt = <1200000>;
+					regulator-max-microvolt = <1256000>;
+				};
+			};
+
+			pmh0110_g: regulators-1 {
+				compatible = "qcom,pmh0110-rpmh-regulators";
+				qcom,pmic-id = "G_E0";
+				status = "disabled";
+
+				L4G: ldo4 {
+					regulator-name = "pmh0110_g_l4";
+					regulator-min-microvolt = <912000>;
+					regulator-max-microvolt = <912000>;
+				};
+			};
 		};
 
 		tcsrcc: clock-controller@1fd5044 {
