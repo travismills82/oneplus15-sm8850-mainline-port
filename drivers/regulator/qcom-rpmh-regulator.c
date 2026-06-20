@@ -64,6 +64,11 @@ enum rpmh_regulator_type {
 #define PMIC5_BOB_MODE_AUTO			6
 #define PMIC5_BOB_MODE_PWM			7
 
+#define PMIC530_LDO_MODE_RETENTION		3
+#define PMIC530_LDO_MODE_LPM			4
+#define PMIC530_LDO_MODE_OPM			5
+#define PMIC530_LDO_MODE_HPM			7
+
 /**
  * struct rpmh_vreg_hw_data - RPMh regulator hardware configurations
  * @regulator_type:		RPMh accelerator type used to manage this
@@ -519,12 +524,46 @@ static const int pmic_mode_map_pmic5_ldo_hpm[REGULATOR_MODE_STANDBY + 1] = {
 	[REGULATOR_MODE_FAST]    = -EINVAL,
 };
 
+static const int pmic_mode_map_pmic530_ldo[REGULATOR_MODE_STANDBY + 1] = {
+	[REGULATOR_MODE_INVALID] = -EINVAL,
+	[REGULATOR_MODE_STANDBY] = PMIC530_LDO_MODE_RETENTION,
+	[REGULATOR_MODE_IDLE]    = PMIC530_LDO_MODE_LPM,
+	[REGULATOR_MODE_NORMAL]  = PMIC530_LDO_MODE_OPM,
+	[REGULATOR_MODE_FAST]    = PMIC530_LDO_MODE_HPM,
+};
+
 static unsigned int rpmh_regulator_pmic4_ldo_of_map_mode(unsigned int rpmh_mode)
 {
 	unsigned int mode;
 
 	switch (rpmh_mode) {
 	case RPMH_REGULATOR_MODE_HPM:
+		mode = REGULATOR_MODE_NORMAL;
+		break;
+	case RPMH_REGULATOR_MODE_LPM:
+		mode = REGULATOR_MODE_IDLE;
+		break;
+	case RPMH_REGULATOR_MODE_RET:
+		mode = REGULATOR_MODE_STANDBY;
+		break;
+	default:
+		mode = REGULATOR_MODE_INVALID;
+		break;
+	}
+
+	return mode;
+}
+
+static unsigned int
+rpmh_regulator_pmic530_ldo_of_map_mode(unsigned int rpmh_mode)
+{
+	unsigned int mode;
+
+	switch (rpmh_mode) {
+	case RPMH_REGULATOR_MODE_HPM:
+		mode = REGULATOR_MODE_FAST;
+		break;
+	case RPMH_REGULATOR_MODE_AUTO:
 		mode = REGULATOR_MODE_NORMAL;
 		break;
 	case RPMH_REGULATOR_MODE_LPM:
@@ -904,6 +943,32 @@ static const struct rpmh_vreg_hw_data pmic5_bob = {
 	.of_map_mode = rpmh_regulator_pmic4_bob_of_map_mode,
 };
 
+static const struct rpmh_vreg_hw_data pmic5_nldo530 = {
+	.regulator_type = VRM,
+	.ops = &rpmh_regulator_vrm_drms_ops,
+	.voltage_ranges = (struct linear_range[]) {
+		REGULATOR_LINEAR_RANGE(320000, 0, 210, 8000),
+	},
+	.n_linear_ranges = 1,
+	.n_voltages = 211,
+	.hpm_min_load_uA = 30000,
+	.pmic_mode_map = pmic_mode_map_pmic530_ldo,
+	.of_map_mode = rpmh_regulator_pmic530_ldo_of_map_mode,
+};
+
+static const struct rpmh_vreg_hw_data pmic5_ftsmps530 = {
+	.regulator_type = VRM,
+	.ops = &rpmh_regulator_vrm_ops,
+	.voltage_ranges = (struct linear_range[]) {
+		REGULATOR_LINEAR_RANGE(252000, 0, 305, 4000),
+		REGULATOR_LINEAR_RANGE(1480000, 306, 464, 8000),
+	},
+	.n_linear_ranges = 2,
+	.n_voltages = 465,
+	.pmic_mode_map = pmic_mode_map_pmic5_smps,
+	.of_map_mode = rpmh_regulator_pmic4_smps_of_map_mode,
+};
+
 #define RPMH_VREG(_name, _resource_name, _hw_data, _supply_name) \
 { \
 	.name		= _name, \
@@ -961,6 +1026,24 @@ static const struct rpmh_vreg_init_data pm8998_vreg_data[] = {
 
 static const struct rpmh_vreg_init_data pmg1110_vreg_data[] = {
 	RPMH_VREG("smps1",  "smp%s1",  &pmic5_ftsmps510,  "vdd-s1"),
+	{}
+};
+
+static const struct rpmh_vreg_init_data pmh0110_vreg_data[] = {
+	RPMH_VREG("smps1",  "S1%s",  &pmic5_ftsmps530, "vdd-s1"),
+	RPMH_VREG("smps2",  "S2%s",  &pmic5_ftsmps530, "vdd-s2"),
+	RPMH_VREG("smps3",  "S3%s",  &pmic5_ftsmps530, "vdd-s3"),
+	RPMH_VREG("smps4",  "S4%s",  &pmic5_ftsmps530, "vdd-s4"),
+	RPMH_VREG("smps5",  "S5%s",  &pmic5_ftsmps530, "vdd-s5"),
+	RPMH_VREG("smps6",  "S6%s",  &pmic5_ftsmps530, "vdd-s6"),
+	RPMH_VREG("smps7",  "S7%s",  &pmic5_ftsmps530, "vdd-s7"),
+	RPMH_VREG("smps8",  "S8%s",  &pmic5_ftsmps530, "vdd-s8"),
+	RPMH_VREG("smps9",  "S9%s",  &pmic5_ftsmps530, "vdd-s9"),
+	RPMH_VREG("smps10", "S10%s", &pmic5_ftsmps530, "vdd-s10"),
+	RPMH_VREG("ldo1",   "L1%s",  &pmic5_nldo530,   "vdd-l1"),
+	RPMH_VREG("ldo2",   "L2%s",  &pmic5_nldo530,   "vdd-l2"),
+	RPMH_VREG("ldo3",   "L3%s",  &pmic5_nldo530,   "vdd-l3"),
+	RPMH_VREG("ldo4",   "L4%s",  &pmic5_nldo530,   "vdd-l4"),
 	{}
 };
 
@@ -1610,6 +1693,10 @@ static const struct of_device_id __maybe_unused rpmh_regulator_match_table[] = {
 	{
 		.compatible = "qcom,pmg1110-rpmh-regulators",
 		.data = pmg1110_vreg_data,
+	},
+	{
+		.compatible = "qcom,pmh0110-rpmh-regulators",
+		.data = pmh0110_vreg_data,
 	},
 	{
 		.compatible = "qcom,pmi8998-rpmh-regulators",
