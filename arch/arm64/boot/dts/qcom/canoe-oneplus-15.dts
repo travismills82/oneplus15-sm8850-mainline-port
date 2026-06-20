@@ -153,7 +153,7 @@
 
 		cluster_pd2: power-domain-cluster {
 			#power-domain-cells = <0>;
-			status = "disabled";
+			status = "okay";
 		};
 	};
 
@@ -170,6 +170,13 @@
 		scm {
 			compatible = "qcom,scm-canoe", "qcom,scm";
 		};
+	};
+
+	mc_virt: interconnect-mc-virt {
+		compatible = "qcom,canoe-mc-virt";
+		#interconnect-cells = <1>;
+		qcom,bcm-voters = <&apps_bcm_voter>;
+		status = "okay";
 	};
 
 	soc@0 {
@@ -206,7 +213,7 @@
 					  <WAKE_TCS 2>,
 					  <CONTROL_TCS 0>;
 			power-domains = <&cluster_pd2>;
-			status = "disabled";
+			status = "okay";
 
 			apps_bcm_voter: bcm-voter {
 				compatible = "qcom,bcm-voter";
@@ -220,7 +227,7 @@
 			pmh0110_d: regulators-0 {
 				compatible = "qcom,pmh0110-rpmh-regulators";
 				qcom,pmic-id = "D_E0";
-				status = "disabled";
+				status = "okay";
 
 				L1D: ldo1 {
 					regulator-name = "pmh0110_d_l1";
@@ -232,7 +239,7 @@
 			pmh0110_g: regulators-1 {
 				compatible = "qcom,pmh0110-rpmh-regulators";
 				qcom,pmic-id = "G_E0";
-				status = "disabled";
+				status = "okay";
 
 				L4G: ldo4 {
 					regulator-name = "pmh0110_g_l4";
@@ -246,7 +253,7 @@
 			compatible = "qcom,canoe-tcsr";
 			reg = <0x0 0x1fd5044 0x0 0x1c>;
 			#clock-cells = <1>;
-			status = "disabled";
+			status = "okay";
 		};
 
 		gcc: clock-controller@100000 {
@@ -278,7 +285,7 @@
 			reg = <0x0 0x01600000 0x0 0x6200>;
 			#interconnect-cells = <1>;
 			qcom,bcm-voters = <&apps_bcm_voter>;
-			status = "disabled";
+			status = "okay";
 		};
 
 		aggre_noc: interconnect@16e0000 {
@@ -289,7 +296,7 @@
 				 <&gcc GCC_AGGRE_USB3_PRIM_AXI_CLK>,
 				 <&rpmhcc RPMH_IPA_CLK>;
 			qcom,bcm-voters = <&apps_bcm_voter>;
-			status = "disabled";
+			status = "okay";
 		};
 
 		ufs_mem_phy: phy@1d80000 {
@@ -370,14 +377,7 @@
 			reg = <0x0 0x31100000 0x0 0x153080>;
 			#interconnect-cells = <1>;
 			qcom,bcm-voters = <&apps_bcm_voter>;
-			status = "disabled";
-		};
-
-		mc_virt: interconnect-1 {
-			compatible = "qcom,canoe-mc-virt";
-			#interconnect-cells = <1>;
-			qcom,bcm-voters = <&apps_bcm_voter>;
-			status = "disabled";
+			status = "okay";
 		};
 
 		tlmm: pinctrl@f000000 {
