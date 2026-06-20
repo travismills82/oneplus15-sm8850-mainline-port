@@ -827,6 +827,7 @@ static struct clk_hw *canoe_rpmh_clocks[] = {
 	[RPMH_CXO_PAD_CLK_A]	= &clk_rpmh_xo_pad_div2_ao.hw,
 	[RPMH_LN_BB_CLK3]	= &clk_rpmh_c8a_e0_div2.hw,
 	[RPMH_LN_BB_CLK3_A]	= &clk_rpmh_c8a_e0_div2_ao.hw,
+	[RPMH_IPA_CLK]		= &clk_rpmh_ipa.hw,
 };
 
 static const struct clk_rpmh_desc clk_rpmh_canoe = {
