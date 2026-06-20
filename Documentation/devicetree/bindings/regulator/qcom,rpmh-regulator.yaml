@@ -50,6 +50,7 @@ description: |
       For PM8450, smps1 - smps6, ldo1 - ldo4
       For PM8550, smps1 - smps6, ldo1 - ldo17, bob1 - bob2
       For PM8998, smps1 - smps13, ldo1 - ldo28, lvs1 - lvs2
+      For PMH0110, smps1 - smps10, ldo1 - ldo4
       For PMI8998, bob
       For PMC8380, smps1 - smps8, ldo1 - lodo3
       For PMR735A, smps1 - smps3, ldo1 - ldo7
@@ -83,6 +84,7 @@ properties:
       - qcom,pmc8180c-rpmh-regulators
       - qcom,pmc8380-rpmh-regulators
       - qcom,pmg1110-rpmh-regulators
+      - qcom,pmh0110-rpmh-regulators
       - qcom,pmi8998-rpmh-regulators
       - qcom,pmm8155au-rpmh-regulators
       - qcom,pmm8654au-rpmh-regulators
@@ -96,7 +98,7 @@ properties:
         RPMh resource name suffix used for the regulators found
         on this PMIC.
     $ref: /schemas/types.yaml#/definitions/string
-    enum: [a, b, c, d, e, f, g, h, i, j, k, l, m, n]
+    pattern: "^([a-n]|[A-N]_E[0-3])$"
 
   qcom,always-wait-for-ack:
     description: |
@@ -474,6 +476,15 @@ allOf:
       patternProperties:
         "^vdd-l[137]-supply$": true
         "^vdd-l1[024579]-supply$": true
+        "^vdd-s([1-9]|10)-supply$": true
+
+  - if:
+      properties:
+        compatible:
+          const: qcom,pmh0110-rpmh-regulators
+    then:
+      patternProperties:
+        "^vdd-l[1-4]-supply$": true
         "^vdd-s([1-9]|10)-supply$": true
 
 unevaluatedProperties: false
