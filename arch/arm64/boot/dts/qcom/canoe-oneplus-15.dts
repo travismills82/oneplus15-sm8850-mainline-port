@@ -318,7 +318,7 @@
 
 			#phy-cells = <0>;
 
-			status = "disabled";
+			status = "okay";
 		};
 
 		ufshc_mem: ufs@1d84000 {
@@ -369,7 +369,7 @@
 
 			dma-coherent;
 
-			status = "disabled";
+			status = "okay";
 		};
 
 		gem_noc: interconnect@31100000 {
