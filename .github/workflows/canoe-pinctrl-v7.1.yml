@@ -1,0 +1,154 @@
+name: Canoe pinctrl v7.1 port
+
+on:
+  push:
+    branches:
+      - port/canoe-pinctrl-v7.1
+    paths:
+      - .github/workflows/canoe-pinctrl-v7.1.yml
+      - tools/oneplus15-port/ci/port_canoe_pinctrl_v71.py
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  port-and-validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+
+    steps:
+      - name: Check out port branch
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Fetch preserved Linux 6.12 branch
+        run: |
+          set -euxo pipefail
+          git fetch --no-tags origin \
+            backup/canoe-6.12-final-5555043:refs/remotes/origin/backup/canoe-6.12-final-5555043
+
+      - name: Import and adapt Canoe TLMM
+        env:
+          OLD_REF: origin/backup/canoe-6.12-final-5555043
+        run: |
+          set -euxo pipefail
+          python3 tools/oneplus15-port/ci/port_canoe_pinctrl_v71.py
+          git diff --check
+          git status --short
+
+      - name: Install kernel and schema dependencies
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            bc \
+            bison \
+            build-essential \
+            clang \
+            flex \
+            libelf-dev \
+            libssl-dev \
+            lld \
+            llvm \
+            make \
+            python3-pip \
+            python3-venv
+          python3 -m venv .venv-dtschema
+          .venv-dtschema/bin/pip install --upgrade pip
+          .venv-dtschema/bin/pip install dtschema
+          echo "$PWD/.venv-dtschema/bin" >> "$GITHUB_PATH"
+
+      - name: Validate Canoe TLMM binding
+        run: |
+          set -euxo pipefail
+          mkdir -p /tmp/canoe-pinctrl-ci
+          make \
+            O=out/canoe-pinctrl \
+            ARCH=arm64 \
+            LLVM=1 \
+            LLVM_IAS=1 \
+            DT_SCHEMA_FILES=Documentation/devicetree/bindings/pinctrl/qcom,canoe-tlmm.yaml \
+            dt_binding_check \
+            2>&1 | tee /tmp/canoe-pinctrl-ci/dt-binding-check.log
+
+      - name: Configure Linux 7.1.1 pinctrl build
+        run: |
+          set -euxo pipefail
+          mkdir -p /tmp/canoe-pinctrl-ci
+          make \
+            O=out/canoe-pinctrl \
+            ARCH=arm64 \
+            LLVM=1 \
+            LLVM_IAS=1 \
+            defconfig \
+            2>&1 | tee /tmp/canoe-pinctrl-ci/defconfig.log
+          scripts/config \
+            --file out/canoe-pinctrl/.config \
+            --enable PINCTRL \
+            --enable PINCTRL_MSM \
+            --enable PINCTRL_CANOE
+          make \
+            O=out/canoe-pinctrl \
+            ARCH=arm64 \
+            LLVM=1 \
+            LLVM_IAS=1 \
+            olddefconfig \
+            2>&1 | tee /tmp/canoe-pinctrl-ci/olddefconfig.log
+          grep -qx 'CONFIG_PINCTRL_MSM=y' out/canoe-pinctrl/.config
+          grep -qx 'CONFIG_PINCTRL_CANOE=y' out/canoe-pinctrl/.config
+          cp out/canoe-pinctrl/.config /tmp/canoe-pinctrl-ci/config
+
+      - name: Build Canoe TLMM object
+        run: |
+          set -euxo pipefail
+          make \
+            O=out/canoe-pinctrl \
+            ARCH=arm64 \
+            LLVM=1 \
+            LLVM_IAS=1 \
+            W=1 \
+            -j2 \
+            drivers/pinctrl/qcom/pinctrl-canoe.o \
+            2>&1 | tee /tmp/canoe-pinctrl-ci/object-build.log
+          test -s out/canoe-pinctrl/drivers/pinctrl/qcom/pinctrl-canoe.o
+          llvm-nm -n out/canoe-pinctrl/drivers/pinctrl/qcom/pinctrl-canoe.o \
+            | tee /tmp/canoe-pinctrl-ci/pinctrl-canoe.nm
+          grep -q 'canoe_tlmm_probe' /tmp/canoe-pinctrl-ci/pinctrl-canoe.nm
+          grep -q 'canoe_tlmm_init' /tmp/canoe-pinctrl-ci/pinctrl-canoe.nm
+          sha256sum out/canoe-pinctrl/drivers/pinctrl/qcom/pinctrl-canoe.o \
+            | tee /tmp/canoe-pinctrl-ci/pinctrl-canoe.o.sha256
+
+      - name: Save validated source patch
+        run: |
+          set -euxo pipefail
+          git diff --binary --full-index > /tmp/canoe-pinctrl-ci/pinctrl-v7.1.patch
+          git diff --stat > /tmp/canoe-pinctrl-ci/pinctrl-v7.1.stat
+          git diff --name-status > /tmp/canoe-pinctrl-ci/pinctrl-v7.1.name-status
+
+      - name: Commit validated Canoe TLMM port
+        run: |
+          set -euxo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- \
+            Documentation/devicetree/bindings/pinctrl/qcom,canoe-tlmm.yaml \
+            drivers/pinctrl/qcom/Kconfig.msm \
+            drivers/pinctrl/qcom/Makefile \
+            drivers/pinctrl/qcom/pinctrl-canoe.c
+          git diff --cached --check
+          git commit -s -m 'pinctrl: qcom: add Canoe TLMM support' \
+            -m 'Port the Canoe TLMM data and binding to Linux v7.1.1.' \
+            -m 'Drop the removed platform-driver remove callback and integrate the driver through the current Qualcomm pinctrl Kconfig and Makefile.' \
+            -m 'Validated with DT binding checks and an LLVM W=1 object build.'
+          git push origin HEAD:port/canoe-pinctrl-v7.1
+
+      - name: Upload validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: canoe-pinctrl-v7.1-validation
+          path: /tmp/canoe-pinctrl-ci
+          if-no-files-found: warn
+          retention-days: 30
