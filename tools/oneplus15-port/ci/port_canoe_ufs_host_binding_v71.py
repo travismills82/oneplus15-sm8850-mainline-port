@@ -170,8 +170,8 @@ def verify_driver_support() -> None:
     combined = driver + header
 
     required = (
-        "mcq_sqd",
-        "mcq_vs",
+        "UFS_QCOM_MCQ_SQD_OFFSET",
+        "UFS_MEM_VS_BASE",
         "ufs_qcom_mcq_config_resource",
     )
     missing = [token for token in required if token not in combined]
