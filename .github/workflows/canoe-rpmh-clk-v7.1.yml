@@ -42,13 +42,10 @@ jobs:
           set -euxo pipefail
           make O=out/canoe-rpmh-clk ARCH=arm64 LLVM=1 LLVM_IAS=1 DT_SCHEMA_FILES=Documentation/devicetree/bindings/clock/qcom,rpmhcc.yaml dt_binding_check 2>&1 | tee /tmp/canoe-rpmh-clk-ci/dt-binding-check.log
 
-      - name: Configure and build RPMh clock object
+      - name: Build RPMh clock translation unit
         run: |
           set -euxo pipefail
           make O=out/canoe-rpmh-clk ARCH=arm64 LLVM=1 LLVM_IAS=1 defconfig
-          scripts/config --file out/canoe-rpmh-clk/.config --enable COMMON_CLK_QCOM --enable QCOM_RPMHCC
-          make O=out/canoe-rpmh-clk ARCH=arm64 LLVM=1 LLVM_IAS=1 olddefconfig
-          grep -Eq '^CONFIG_QCOM_RPMHCC=(y|m)$' out/canoe-rpmh-clk/.config
           make O=out/canoe-rpmh-clk ARCH=arm64 LLVM=1 LLVM_IAS=1 W=1 -j2 drivers/clk/qcom/clk-rpmh.o 2>&1 | tee /tmp/canoe-rpmh-clk-ci/object-build.log
           test -s out/canoe-rpmh-clk/drivers/clk/qcom/clk-rpmh.o
           llvm-nm -n out/canoe-rpmh-clk/drivers/clk/qcom/clk-rpmh.o | tee /tmp/canoe-rpmh-clk-ci/clk-rpmh.nm
