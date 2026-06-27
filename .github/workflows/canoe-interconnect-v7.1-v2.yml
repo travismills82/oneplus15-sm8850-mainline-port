@@ -1,0 +1,78 @@
+name: Canoe interconnect v7.1 port v2
+
+on:
+  pull_request:
+    branches: [bringup/canoe-v7.1]
+    paths:
+      - .github/workflows/canoe-interconnect-v7.1-v2.yml
+      - tools/oneplus15-port/ci/port_canoe_interconnect_v71.py
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  port-and-validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          ref: ${{ github.head_ref || github.ref_name }}
+
+      - name: Fetch preserved source
+        run: git fetch --no-tags origin backup/canoe-6.12-final-5555043:refs/remotes/origin/backup/canoe-6.12-final-5555043
+
+      - name: Convert Canoe interconnect data
+        env:
+          OLD_REF: origin/backup/canoe-6.12-final-5555043
+        run: |
+          set -euxo pipefail
+          mkdir -p /tmp/canoe-interconnect-ci
+          python3 tools/oneplus15-port/ci/port_canoe_interconnect_v71.py 2>&1 | tee /tmp/canoe-interconnect-ci/conversion.log
+          git diff --check
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y bc bison build-essential clang flex libelf-dev libssl-dev lld llvm make
+
+      - name: Configure
+        run: |
+          set -euxo pipefail
+          make O=out/canoe-interconnect ARCH=arm64 LLVM=1 LLVM_IAS=1 defconfig
+          scripts/config --file out/canoe-interconnect/.config --enable INTERCONNECT --enable INTERCONNECT_QCOM --enable QCOM_COMMAND_DB --enable QCOM_RPMH --enable INTERCONNECT_QCOM_CANOE
+          make O=out/canoe-interconnect ARCH=arm64 LLVM=1 LLVM_IAS=1 olddefconfig
+          grep -qx 'CONFIG_INTERCONNECT_QCOM_CANOE=y' out/canoe-interconnect/.config
+          cp out/canoe-interconnect/.config /tmp/canoe-interconnect-ci/config
+
+      - name: Build Canoe translation unit
+        run: |
+          set -euxo pipefail
+          make O=out/canoe-interconnect ARCH=arm64 LLVM=1 LLVM_IAS=1 W=1 -j2 drivers/interconnect/qcom/canoe.o 2>&1 | tee /tmp/canoe-interconnect-ci/object-build.log
+          test -s out/canoe-interconnect/drivers/interconnect/qcom/canoe.o
+          llvm-nm -n out/canoe-interconnect/drivers/interconnect/qcom/canoe.o | tee /tmp/canoe-interconnect-ci/canoe.nm
+          grep -q qnoc_driver_init /tmp/canoe-interconnect-ci/canoe.nm
+          sha256sum out/canoe-interconnect/drivers/interconnect/qcom/canoe.o | tee /tmp/canoe-interconnect-ci/canoe.o.sha256
+          ! grep -E 'warning:|error:' /tmp/canoe-interconnect-ci/object-build.log
+
+      - name: Record and commit validated source
+        run: |
+          set -euxo pipefail
+          git diff --binary --full-index > /tmp/canoe-interconnect-ci/interconnect-v7.1.patch
+          git diff --check
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git add drivers/interconnect/qcom/Kconfig drivers/interconnect/qcom/Makefile drivers/interconnect/qcom/canoe.c include/dt-bindings/interconnect/qcom,canoe-rpmh.h
+          git diff --cached --check
+          git commit -s -m 'interconnect: qcom: add Canoe NoC support' -m 'Convert legacy numeric links to the Linux v7.1 pointer-linked qcom_icc_node model.' -m 'Validated with an ARM64 LLVM W=1 object build.'
+          git push origin HEAD:port/canoe-interconnect-v7.1
+
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: canoe-interconnect-v7.1-validation-v2
+          path: /tmp/canoe-interconnect-ci
+          if-no-files-found: warn
+          retention-days: 30
