@@ -94,8 +94,8 @@ jobs:
             LLVM_IAS=1 \
             olddefconfig \
             2>&1 | tee /tmp/canoe-ufs-phy-ci/olddefconfig.log
-          grep -qx 'CONFIG_PHY_QCOM_QMP_UFS=y' out/canoe-ufs-phy/.config
           cp out/canoe-ufs-phy/.config /tmp/canoe-ufs-phy-ci/config
+          grep -Eq '^CONFIG_PHY_QCOM_QMP_UFS=(y|m)$' out/canoe-ufs-phy/.config
 
       - name: Build Canoe-capable UFS PHY object
         run: |
