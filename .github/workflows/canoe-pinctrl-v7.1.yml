@@ -16,7 +16,7 @@ on:
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   port-and-validate:
@@ -127,29 +127,24 @@ jobs:
           sha256sum out/canoe-pinctrl/drivers/pinctrl/qcom/pinctrl-canoe.o \
             | tee /tmp/canoe-pinctrl-ci/pinctrl-canoe.o.sha256
 
-      - name: Save validated source patch
+      - name: Export validated source and evidence
         run: |
           set -euxo pipefail
+          mkdir -p /tmp/canoe-pinctrl-ci/source-tree
           git diff --binary --full-index > /tmp/canoe-pinctrl-ci/pinctrl-v7.1.patch
           git diff --stat > /tmp/canoe-pinctrl-ci/pinctrl-v7.1.stat
-          git diff --name-status > /tmp/canoe-pinctrl-ci/pinctrl-v7.1.name-status
-
-      - name: Commit validated Canoe TLMM port
-        run: |
-          set -euxo pipefail
-          git config user.name 'github-actions[bot]'
-          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-          git add -- \
+          git status --short > /tmp/canoe-pinctrl-ci/git-status.txt
+          cp --parents \
             Documentation/devicetree/bindings/pinctrl/qcom,canoe-tlmm.yaml \
             drivers/pinctrl/qcom/Kconfig.msm \
             drivers/pinctrl/qcom/Makefile \
-            drivers/pinctrl/qcom/pinctrl-canoe.c
-          git diff --cached --check
-          git commit -s -m 'pinctrl: qcom: add Canoe TLMM support' \
-            -m 'Port the Canoe TLMM data and binding to Linux v7.1.1.' \
-            -m 'Drop the removed platform-driver remove callback and integrate the driver through the current Qualcomm pinctrl Kconfig and Makefile.' \
-            -m 'Validated with DT binding checks and an LLVM W=1 object build.'
-          git push origin HEAD:port/canoe-pinctrl-v7.1
+            drivers/pinctrl/qcom/pinctrl-canoe.c \
+            /tmp/canoe-pinctrl-ci/source-tree/
+          find /tmp/canoe-pinctrl-ci/source-tree -type f -print0 \
+            | sort -z \
+            | xargs -0 sha256sum \
+            > /tmp/canoe-pinctrl-ci/source-tree.sha256
+          git diff --check
 
       - name: Upload validation evidence
         if: always()
@@ -157,5 +152,5 @@ jobs:
         with:
           name: canoe-pinctrl-v7.1-validation
           path: /tmp/canoe-pinctrl-ci
-          if-no-files-found: warn
+          if-no-files-found: error
           retention-days: 30
