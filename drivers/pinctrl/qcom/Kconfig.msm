@@ -15,6 +15,13 @@ config PINCTRL_APQ8084
 	  This is the pinctrl, pinmux, pinconf and gpiolib driver for the
 	  Qualcomm TLMM block found in the Qualcomm APQ8084 platform.
 
+config PINCTRL_CANOE
+	tristate "Qualcomm Canoe pin controller driver"
+	depends on ARM64 || COMPILE_TEST
+	help
+	  This is the pinctrl, pinmux, pinconf and gpiolib driver for the
+	  Qualcomm TLMM block found on the Qualcomm Canoe platform.
+
 config PINCTRL_ELIZA
 	tristate "Qualcomm Technologies Inc Eliza pin controller driver"
 	depends on ARM64 || COMPILE_TEST
