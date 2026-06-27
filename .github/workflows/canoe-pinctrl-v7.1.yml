@@ -7,6 +7,12 @@ on:
     paths:
       - .github/workflows/canoe-pinctrl-v7.1.yml
       - tools/oneplus15-port/ci/port_canoe_pinctrl_v71.py
+  pull_request:
+    branches:
+      - bringup/canoe-v7.1
+    paths:
+      - .github/workflows/canoe-pinctrl-v7.1.yml
+      - tools/oneplus15-port/ci/port_canoe_pinctrl_v71.py
   workflow_dispatch:
 
 permissions:
@@ -22,6 +28,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          ref: ${{ github.head_ref || github.ref_name }}
 
       - name: Fetch preserved Linux 6.12 branch
         run: |
