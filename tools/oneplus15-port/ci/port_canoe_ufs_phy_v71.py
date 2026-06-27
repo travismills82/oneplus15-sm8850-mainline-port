@@ -81,11 +81,26 @@ def adapt_driver() -> None:
         raise RuntimeError("sm8650 UFS table anchor is missing or ambiguous")
     current = current.replace(table_anchor, table_blocks + table_anchor, 1)
 
+    vreg_block = (
+        "static const struct regulator_bulk_data canoe_ufsphy_vreg_l[] = {\n"
+        '\t{ .supply = "vdda-phy" },\n'
+        '\t{ .supply = "vdda-pll" },\n'
+        "};\n\n"
+    )
+    vreg_anchor = "static const struct regulator_bulk_data milos_ufsphy_vreg_l[] = {"
+    if current.count(vreg_anchor) != 1:
+        raise RuntimeError("modern UFS regulator-list anchor is missing or ambiguous")
+    current = current.replace(vreg_anchor, vreg_block + vreg_anchor, 1)
+
     cfg_block = extract_block(
         old,
         r"static const struct qmp_phy_cfg canoe_ufsphy_cfg = \{.*?^\};",
         "canoe_ufsphy_cfg",
     )
+    if cfg_block.count("qmp_phy_vreg_l") != 2:
+        raise RuntimeError("preserved Canoe config has unexpected regulator references")
+    cfg_block = cfg_block.replace("qmp_phy_vreg_l", "canoe_ufsphy_vreg_l")
+
     cfg_anchor = "static const struct qmp_phy_cfg sm8650_ufsphy_cfg = {"
     if current.count(cfg_anchor) != 1:
         raise RuntimeError("sm8650 UFS config anchor is missing or ambiguous")
@@ -161,6 +176,7 @@ def verify() -> None:
         "Canoe OF match": driver.count("qcom,canoe-qmp-ufs-phy") == 1,
         "Gear 5 support": ".max_supported_gear\t= UFS_HS_G5" in driver,
         "two lanes": ".lanes\t\t\t= 2" in driver,
+        "Canoe regulator list": driver.count("canoe_ufsphy_vreg_l") == 3,
         "UFS v7 TX macro": "QSERDES_UFS_V7_TX_LANE_MODE_1" in txrx,
         "UFS v7 RX macro": "QSERDES_UFS_V7_RX_MODE_RATE4_SB_B7" in txrx,
         "adaptive PLL macro": "QSERDES_V6_COM_ADAPTIVE_ANALOG_CONFIG" in com,
