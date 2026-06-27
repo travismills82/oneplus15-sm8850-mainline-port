@@ -112,16 +112,19 @@ def adapt_binding() -> None:
 
     text = replace_once(
         text,
+        "        enum:\n          - qcom,msm8994-ufshc\n",
+        "        enum:\n"
+        "          - qcom,canoe-ufshc\n"
         "          - qcom,msm8994-ufshc\n",
-        "          - qcom,canoe-ufshc\n          - qcom,msm8994-ufshc\n",
         "select compatible insertion",
     )
 
-    # The same msm8994 line now occurs once more in the properties enum.
     text = replace_once(
         text,
+        "      - enum:\n          - qcom,msm8994-ufshc\n",
+        "      - enum:\n"
+        "          - qcom,canoe-ufshc\n"
         "          - qcom,msm8994-ufshc\n",
-        "          - qcom,canoe-ufshc\n          - qcom,msm8994-ufshc\n",
         "properties compatible insertion",
     )
 
