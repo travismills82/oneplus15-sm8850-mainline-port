@@ -63,6 +63,11 @@ properties:
 
       - items:
           - enum:
+              - oneplus,oneplus-15
+          - const: qcom,canoe
+
+      - items:
+          - enum:
               - qcom,eliza-mtp
           - const: qcom,eliza
 
