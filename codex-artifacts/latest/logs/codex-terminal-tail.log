@@ -1,0 +1,300 @@
+      - description: virtual timer irq
+      - description: hypervisor timer irq
+      - description: hypervisor virtual timer irq
+
+  interrupt-names:
+    oneOf:
+      - minItems: 2
+        items:
+          - const: phys
+          - const: virt
+          - const: hyp-phys
+          - const: hyp-virt
+      - minItems: 3
+        items:
+          - const: sec-phys
+          - const: phys
+          - const: virt
+          - const: hyp-phys
+          - const: hyp-virt
+
+  clock-frequency:
+    description: The frequency of the main counter, in Hz. Should be present
+      only where necessary to work around broken firmware which does not configure
+      CNTFRQ on all CPUs to a uniform correct value. Use of this property is
+      strongly discouraged; fix your firmware unless absolutely impossible.
+
+  always-on:
+    type: boolean
+    description: If present, the timer is powered through an always-on power
+      domain, therefore it never loses context.
+
+  allwinner,erratum-unknown1:
+    type: boolean
+    description: Indicates the presence of an erratum found in Allwinner SoCs,
+      where reading certain values from the counter is unreliable. This also
+      affects writes to the tval register, due to the implicit counter read.
+
+  fsl,erratum-a008585:
+    type: boolean
+    description: Indicates the presence of QorIQ erratum A-008585, which says
+      that reading the counter is unreliable unless the same value is returned
+      by back-to-back reads. This also affects writes to the tval register, due
+      to the implicit counter read.
+
+  hisilicon,erratum-161010101:
+    type: boolean
+    description: Indicates the presence of Hisilicon erratum 161010101, which
+      says that reading the counters is unreliable in some cases, and reads may
+      return a value 32 beyond the correct value. This also affects writes to
+      the tval registers, due to the implicit counter read.
+
+  arm,cpu-registers-not-fw-configured:
+    type: boolean
+    description: Firmware does not initialize any of the generic timer CPU
+      registers, which contain their architecturally-defined reset values. Only
+      supported for 32-bit systems which follow the ARMv7 architected reset
+      values.
+
+  arm,no-tick-in-suspend:
+    type: boolean
+    description: The main counter does not tick when the system is in
+      low-power system suspend on some SoCs. This behavior does not match the
+      Architecture Reference Manual's specification that the system counter "must
+      be implemented in an always-on power domain."
+
+required:
+  - compatible
+
+additionalProperties: false
+
+oneOf:
+  - required:
+      - interrupts
+  - required:
+      - interrupts-extended
+
+examples:
+  - |
+    timer {
+      compatible = "arm,cortex-a15-timer",
+             "arm,armv7-timer";
+      interrupts = <1 13 0xf08>,
+             <1 14 0xf08>,
+             <1 11 0xf08>,
+             <1 10 0xf08>;
+      clock-frequency = <100000000>;
+    };
+
+...
+/* SPDX-License-Identifier: GPL-2.0 OR MIT */
+/*
+ * This header provides constants for the ARM GIC.
+ */
+
+#ifndef _DT_BINDINGS_INTERRUPT_CONTROLLER_ARM_GIC_H
+#define _DT_BINDINGS_INTERRUPT_CONTROLLER_ARM_GIC_H
+
+#include <dt-bindings/interrupt-controller/irq.h>
+
+/* interrupt specifier cell 0 */
+
+#define GIC_SPI 0
+#define GIC_PPI 1
+#define GIC_ESPI 2
+#define GIC_EPPI 3
+
+/*
+ * Interrupt specifier cell 2.
+ * The flags in irq.h are valid, plus those below.
+ */
+#define GIC_CPU_MASK_RAW(x) ((x) << 8)
+#define GIC_CPU_MASK_SIMPLE(num) GIC_CPU_MASK_RAW((1 << (num)) - 1)
+
+#endif
+/* SPDX-License-Identifier: GPL-2.0 OR MIT */
+/*
+ * This header provides constants for most IRQ bindings.
+ *
+ * Most IRQ bindings include a flags cell as part of the IRQ specifier.
+ * In most cases, the format of the flags cell uses the standard values
+ * defined in this header.
+ */
+
+#ifndef _DT_BINDINGS_INTERRUPT_CONTROLLER_IRQ_H
+#define _DT_BINDINGS_INTERRUPT_CONTROLLER_IRQ_H
+
+#define IRQ_TYPE_NONE		0
+#define IRQ_TYPE_EDGE_RISING	1
+#define IRQ_TYPE_EDGE_FALLING	2
+#define IRQ_TYPE_EDGE_BOTH	(IRQ_TYPE_EDGE_FALLING | IRQ_TYPE_EDGE_RISING)
+#define IRQ_TYPE_LEVEL_HIGH	4
+#define IRQ_TYPE_LEVEL_LOW	8
+
+#endif
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Copyright (c) 2026, Travis Mills <travismills82@gmail.com>
+ */
+
+#include <dt-bindings/interrupt-controller/arm-gic.h>
+
+/ {
+	#address-cells = <2>;
+	#size-cells = <2>;
+	interrupt-parent = <&intc>;
+
+	clocks {
+		bi_tcxo: clock-19200000 {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+			clock-frequency = <19200000>;
+		};
+
+		sleep_clk: clock-32768 {
+			compatible = "fixed-clock";
+			#clock-cells = <0>;
+			clock-frequency = <32768>;
+		};
+	};
+
+	firmware {
+		scm: scm {
+			compatible = "qcom,scm-canoe", "qcom,scm";
+		};
+	};
+
+	psci {
+		compatible = "arm,psci-1.0";
+		method = "smc";
+	};
+
+	timer {
+		compatible = "arm,armv8-timer";
+		interrupts = <GIC_PPI 13 (GIC_CPU_MASK_SIMPLE(8) | IRQ_TYPE_LEVEL_LOW)>,
+			     <GIC_PPI 14 (GIC_CPU_MASK_SIMPLE(8) | IRQ_TYPE_LEVEL_LOW)>,
+			     <GIC_PPI 11 (GIC_CPU_MASK_SIMPLE(8) | IRQ_TYPE_LEVEL_LOW)>,
+			     <GIC_PPI 10 (GIC_CPU_MASK_SIMPLE(8) | IRQ_TYPE_LEVEL_LOW)>;
+		clock-frequency = <19200000>;
+	};
+
+	soc@0 {
+		compatible = "simple-bus";
+		#address-cells = <2>;
+		#size-cells = <2>;
+		ranges = <0x0 0x0 0x0 0x0 0x10 0x0>;
+
+		intc: interrupt-controller@17000000 {
+			compatible = "arm,gic-v3";
+			reg = <0x0 0x17000000 0x0 0x10000>,
+			      <0x0 0x17080000 0x0 0x200000>;
+			#interrupt-cells = <3>;
+			interrupt-controller;
+			#redistributor-regions = <1>;
+			redistributor-stride = <0x0 0x40000>;
+			interrupts = <GIC_PPI 9 IRQ_TYPE_LEVEL_HIGH>;
+		};
+	};
+
+	chosen {
+	};
+};
+refs/remotes/origin/port/canoe-arch-timer-v7.1 4337f3e21b45fcbcfeb4a2debf406d71aa10ee93
+
+codex
+The local binding accepts this node and defines the four interrupts in the supplied order; the header expands the CPU mask and low-level flag as intended. The official reference object is not present locally, so I’m using the specified immutable upstream GitHub commit for the final source comparison.
+web search:
+web search: https://raw.githubusercontent.com/OnePlusOSS/android_kernel_modules_and_devicetree_oneplus_sm8850/307d23721d20e21b8160b9ba9c3cb50911ff8c00/kernel_platform/qcom/opensource/devicetree/qcom/canoe.dtsi
+web search:
+web search: https://github.com/OnePlusOSS/android_kernel_modules_and_devicetree_oneplus_sm8850/blob/307d23721d20e21b8160b9ba9c3cb50911ff8c00/kernel_platform/qcom/opensource/devicetree/qcom/canoe.dtsi
+mcp: codex_apps/github.fetch_file started
+mcp: codex_apps/github.fetch_file (completed)
+mcp: codex_apps/github.search started
+mcp: codex_apps/github.search (completed)
+mcp: codex_apps/github.fetch_file started
+mcp: codex_apps/github.fetch_file (completed)
+mcp: codex_apps/github.search started
+mcp: codex_apps/github.search (completed)
+mcp: codex_apps/github.search started
+mcp: codex_apps/github.search (completed)
+codex
+No blocking findings.
+
+- Commit is a direct child of locked base.
+- Remote source branch points to the reviewed commit.
+- Exact delta: only `arch/arm64/boot/dts/qcom/canoe.dtsi`, adding nine lines.
+- Adds one root-level `arm,armv8-timer` node.
+- PPIs are exactly 13, 14, 11, 10.
+- All use `GIC_CPU_MASK_SIMPLE(8) | IRQ_TYPE_LEVEL_LOW`.
+- Frequency is exactly 19,200,000 Hz.
+- No prohibited or unrelated changes.
+- Local binding permits the node and properties. Header macros resolve correctly.
+- Immutable [official Canoe source](https://github.com/OnePlusOSS/android_kernel_modules_and_devicetree_oneplus_sm8850/blob/307d23721d20e21b8160b9ba9c3cb50911ff8c00/kernel_platform/qcom/opensource/devicetree/qcom/canoe.dtsi) was inspected.
+- `git diff --check` passed.
+- Worktree remained clean and detached.
+
+Commands run:
+
+```text
+git status --short --branch
+git rev-parse <commit>^
+git rev-parse <base>
+git branch --contains <commit>
+git show --format=fuller --stat --summary <commit>
+git diff --name-status <base> <commit>
+git diff --check <base> <commit>
+git diff <base> <commit> -- arch/arm64/boot/dts/qcom/canoe.dtsi
+rg … Documentation devicetree
+rg … include arch/arm64/boot/dts
+git show <commit>:arch/arm64/boot/dts/qcom/canoe.dtsi
+git cat-file -t <official-reference>
+sed … arm,arch_timer.yaml
+sed … arm-gic.h
+sed … irq.h
+git for-each-ref …
+```
+
+Remaining risks: no DT build/schema validation or hardware testing was performed, consistent with the read-only/no-hardware constraints. The binding discourages `clock-frequency` except as a firmware workaround, but it is explicitly required here.
+
+CODEX_REVIEW_PASS
+tokens used
+64,651
+No blocking findings.
+
+- Commit is a direct child of locked base.
+- Remote source branch points to the reviewed commit.
+- Exact delta: only `arch/arm64/boot/dts/qcom/canoe.dtsi`, adding nine lines.
+- Adds one root-level `arm,armv8-timer` node.
+- PPIs are exactly 13, 14, 11, 10.
+- All use `GIC_CPU_MASK_SIMPLE(8) | IRQ_TYPE_LEVEL_LOW`.
+- Frequency is exactly 19,200,000 Hz.
+- No prohibited or unrelated changes.
+- Local binding permits the node and properties. Header macros resolve correctly.
+- Immutable [official Canoe source](https://github.com/OnePlusOSS/android_kernel_modules_and_devicetree_oneplus_sm8850/blob/307d23721d20e21b8160b9ba9c3cb50911ff8c00/kernel_platform/qcom/opensource/devicetree/qcom/canoe.dtsi) was inspected.
+- `git diff --check` passed.
+- Worktree remained clean and detached.
+
+Commands run:
+
+```text
+git status --short --branch
+git rev-parse <commit>^
+git rev-parse <base>
+git branch --contains <commit>
+git show --format=fuller --stat --summary <commit>
+git diff --name-status <base> <commit>
+git diff --check <base> <commit>
+git diff <base> <commit> -- arch/arm64/boot/dts/qcom/canoe.dtsi
+rg … Documentation devicetree
+rg … include arch/arm64/boot/dts
+git show <commit>:arch/arm64/boot/dts/qcom/canoe.dtsi
+git cat-file -t <official-reference>
+sed … arm,arch_timer.yaml
+sed … arm-gic.h
+sed … irq.h
+git for-each-ref …
+```
+
+Remaining risks: no DT build/schema validation or hardware testing was performed, consistent with the read-only/no-hardware constraints. The binding discourages `clock-frequency` except as a firmware workaround, but it is explicitly required here.
+
+CODEX_REVIEW_PASS

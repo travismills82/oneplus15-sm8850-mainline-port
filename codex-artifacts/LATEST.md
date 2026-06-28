@@ -1,9 +1,12 @@
 # Latest Codex artifact handoff
 
-- Latest task: Canoe GICv3 existing-branch validation
-- Published UTC: `20260628T222023Z`
-- Source branch: `port/canoe-gic-v7.1`
-- Source commit: `3c7b32c8add9244d767fbd073d61f1d113233f22`
+- Project: OnePlus 15 / Canoe Linux 7.1.1
+- Latest task: Canoe ARM architectural timer
+- Published UTC: `20260628T233840Z`
+- Source branch: `port/canoe-arch-timer-v7.1`
+- Source commit: `4337f3e21b45fcbcfeb4a2debf406d71aa10ee93`
 - Validation result: `passed`
 
-See `codex-artifacts/latest/MANIFEST.md`.
+See:
+
+`codex-artifacts/latest/MANIFEST.md`

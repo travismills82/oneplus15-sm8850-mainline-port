@@ -1,0 +1,21 @@
+make: Entering directory '/tmp/oneplus15-canoe-timer.MWDg7w/source-worktree'
+make  -C /tmp/oneplus15-canoe-timer.MWDg7w/out \
+-f /tmp/oneplus15-canoe-timer.MWDg7w/source-worktree/Makefile qcom/canoe-oneplus-15.dtb
+make[1]: Entering directory '/tmp/oneplus15-canoe-timer.MWDg7w/out'
+make --no-print-directory -C /tmp/oneplus15-canoe-timer.MWDg7w/out \
+-f /tmp/oneplus15-canoe-timer.MWDg7w/source-worktree/Makefile qcom/canoe-oneplus-15.dtb
+set -e; mkdir -p include/config/; trap "rm -f include/config/.tmp_kernel.release" EXIT; { /tmp/oneplus15-canoe-timer.MWDg7w/source-worktree/scripts/setlocalversion /tmp/oneplus15-canoe-timer.MWDg7w/source-worktree; } > include/config/.tmp_kernel.release; if [ ! -r include/config/kernel.release ] || ! cmp -s include/config/kernel.release include/config/.tmp_kernel.release; then : '  UPD     include/config/kernel.release'; mv -f include/config/.tmp_kernel.release include/config/kernel.release; fi
+make -f /tmp/oneplus15-canoe-timer.MWDg7w/source-worktree/scripts/Makefile.build obj=scripts/basic
+make -f /tmp/oneplus15-canoe-timer.MWDg7w/source-worktree/scripts/Makefile.build obj=scripts/dtc
+make -f /tmp/oneplus15-canoe-timer.MWDg7w/source-worktree/scripts/Makefile.build obj=Documentation/devicetree/bindings
+# SCHEMA  Documentation/devicetree/bindings/processed-schema.json
+  f=$(mktemp) ; find /tmp/oneplus15-canoe-timer.MWDg7w/source-worktree/Documentation/devicetree/bindings \( -name '*.yaml' ! -name 'processed-schema*' \) > $f ; dt-mk-schema -j  @$f > Documentation/devicetree/bindings/processed-schema.json ; rm -f $f
+make -f /tmp/oneplus15-canoe-timer.MWDg7w/source-worktree/scripts/Makefile.build obj=arch/arm64/boot/dts arch/arm64/boot/dts/qcom/canoe-oneplus-15.dtb
+make -f /tmp/oneplus15-canoe-timer.MWDg7w/source-worktree/scripts/Makefile.build obj=arch/arm64/boot/dts/qcom \
+need-builtin= \
+need-modorder= \
+arch/arm64/boot/dts/qcom/canoe-oneplus-15.dtb
+# DTC [C] arch/arm64/boot/dts/qcom/canoe-oneplus-15.dtb
+  clang -E -Wp,-MMD,arch/arm64/boot/dts/qcom/.canoe-oneplus-15.dtb.d.pre.tmp -nostdinc -I /tmp/oneplus15-canoe-timer.MWDg7w/source-worktree/scripts/dtc/include-prefixes -undef -D__DTS__ -x assembler-with-cpp -o arch/arm64/boot/dts/qcom/.canoe-oneplus-15.dtb.dts.tmp /tmp/oneplus15-canoe-timer.MWDg7w/source-worktree/arch/arm64/boot/dts/qcom/canoe-oneplus-15.dts ; ./scripts/dtc/dtc -o arch/arm64/boot/dts/qcom/canoe-oneplus-15.dtb -b 0 -i/tmp/oneplus15-canoe-timer.MWDg7w/source-worktree/arch/arm64/boot/dts/qcom/ -i/tmp/oneplus15-canoe-timer.MWDg7w/source-worktree/scripts/dtc/include-prefixes -Wno-unique_unit_address -Wunique_unit_address_if_enabled   -d arch/arm64/boot/dts/qcom/.canoe-oneplus-15.dtb.d.dtc.tmp arch/arm64/boot/dts/qcom/.canoe-oneplus-15.dtb.dts.tmp ; cat arch/arm64/boot/dts/qcom/.canoe-oneplus-15.dtb.d.pre.tmp arch/arm64/boot/dts/qcom/.canoe-oneplus-15.dtb.d.dtc.tmp > arch/arm64/boot/dts/qcom/.canoe-oneplus-15.dtb.d ; dt-validate -l Documentation/devicetree/bindings/arm/qcom.yaml:Documentation/devicetree/bindings/clock/fixed-clock.yaml:Documentation/devicetree/bindings/arm/psci.yaml:Documentation/devicetree/bindings/firmware/qcom,scm.yaml:Documentation/devicetree/bindings/interrupt-controller/arm,gic-v3.yaml:Documentation/devicetree/bindings/timer/arm,arch_timer.yaml -u /tmp/oneplus15-canoe-timer.MWDg7w/source-worktree/Documentation/devicetree/bindings -p ./Documentation/devicetree/bindings/processed-schema.json arch/arm64/boot/dts/qcom/canoe-oneplus-15.dtb || true
+make[1]: Leaving directory '/tmp/oneplus15-canoe-timer.MWDg7w/out'
+make: Leaving directory '/tmp/oneplus15-canoe-timer.MWDg7w/source-worktree'
