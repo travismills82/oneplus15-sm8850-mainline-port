@@ -1,0 +1,131 @@
+name: Remove legacy Linux 6.12.23 branches
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - .github/workflows/remove-legacy-6.12-branches.yml
+
+permissions:
+  contents: write
+
+jobs:
+  remove-legacy-branches:
+    if: github.event.head_commit.message == 'ci: remove Linux 6.12.23 branches'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Preserve final 6.12.23 snapshot as an immutable tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          LEGACY_SHA: 5555043e466f5a12dbc029254883f3f8ed7061cd
+        run: |
+          set -euxo pipefail
+
+          if gh api "repos/${REPOSITORY}/git/ref/tags/archive/canoe-6.12.23-final" >/dev/null 2>&1; then
+            echo "Legacy archive tag already exists."
+          else
+            gh api --method POST "repos/${REPOSITORY}/git/refs" \
+              -f ref='refs/tags/archive/canoe-6.12.23-final' \
+              -f sha="${LEGACY_SHA}"
+          fi
+
+      - name: Delete all legacy 6.12.23 branch refs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+
+          deleted_file="${RUNNER_TEMP}/deleted-branches.txt"
+          kept_file="${RUNNER_TEMP}/kept-branches.txt"
+          : >"${deleted_file}"
+          : >"${kept_file}"
+
+          gh api --paginate "repos/${REPOSITORY}/branches?per_page=100" \
+            --jq '.[].name' >"${RUNNER_TEMP}/branches.txt"
+
+          while IFS= read -r branch; do
+            case "${branch}" in
+              main|bringup/canoe-v7.1|mainline/v7.1.1-snapshot)
+                printf '%s\tprotected-current\n' "${branch}" >>"${kept_file}"
+                continue
+                ;;
+            esac
+
+            encoded_ref="$(python3 - "${branch}" <<'PY'
+import sys
+import urllib.parse
+print(urllib.parse.quote(sys.argv[1], safe=''))
+PY
+)"
+
+            makefile_json="$(
+              gh api "repos/${REPOSITORY}/contents/Makefile?ref=${encoded_ref}" \
+                2>/dev/null || true
+            )"
+
+            kernel_version="unknown"
+            if [[ -n "${makefile_json}" ]]; then
+              makefile_content="$(
+                jq -r '.content // empty' <<<"${makefile_json}" |
+                  tr -d '\n' |
+                  base64 --decode 2>/dev/null || true
+              )"
+
+              version="$(awk '$1 == "VERSION" {print $3; exit}' <<<"${makefile_content}")"
+              patchlevel="$(awk '$1 == "PATCHLEVEL" {print $3; exit}' <<<"${makefile_content}")"
+              sublevel="$(awk '$1 == "SUBLEVEL" {print $3; exit}' <<<"${makefile_content}")"
+
+              if [[ -n "${version}" && -n "${patchlevel}" && -n "${sublevel}" ]]; then
+                kernel_version="${version}.${patchlevel}.${sublevel}"
+              fi
+            fi
+
+            delete_branch=0
+            reason=""
+
+            if [[ "${kernel_version}" == "6.12.23" ]]; then
+              delete_branch=1
+              reason="kernel-${kernel_version}"
+            elif [[ "${branch}" == *6.12* ]]; then
+              delete_branch=1
+              reason="legacy-name"
+            elif [[ "${branch}" == backup/* ]]; then
+              delete_branch=1
+              reason="legacy-backup"
+            fi
+
+            if (( delete_branch == 1 )); then
+              gh api --method DELETE \
+                "repos/${REPOSITORY}/git/refs/heads/${encoded_ref}"
+              printf '%s\t%s\t%s\n' \
+                "${branch}" "${kernel_version}" "${reason}" >>"${deleted_file}"
+            else
+              printf '%s\t%s\n' "${branch}" "${kernel_version}" >>"${kept_file}"
+            fi
+          done <"${RUNNER_TEMP}/branches.txt"
+
+          {
+            echo '## Legacy Linux 6.12.23 branch cleanup'
+            echo
+            echo '### Deleted branches'
+            echo '```text'
+            if [[ -s "${deleted_file}" ]]; then
+              cat "${deleted_file}"
+            else
+              echo 'none'
+            fi
+            echo '```'
+            echo
+            echo '### Retained branches'
+            echo '```text'
+            cat "${kept_file}"
+            echo '```'
+            echo
+            echo 'Historical source retained as tag:'
+            echo '`archive/canoe-6.12.23-final`'
+          } >>"${GITHUB_STEP_SUMMARY}"
