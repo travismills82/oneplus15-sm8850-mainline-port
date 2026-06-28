@@ -1,3 +1,0 @@
-2e36dd81f arm64: dts: qcom: add Canoe fixed input clocks
- arch/arm64/boot/dts/qcom/canoe.dtsi | 14 ++++++++++++++
- 1 file changed, 14 insertions(+)
