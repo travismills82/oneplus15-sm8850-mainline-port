@@ -1,69 +1,137 @@
 # OnePlus 15 SM8850 Mainline Linux Port
 
-> **Linux 7.1 migration**
->
-> This branch is restarting the hardware port on the clean Linux `v7.1.1` baseline. The earlier Linux 6.12 work is preserved and is being replayed subsystem by subsystem. See [PORTING-7.1.md](PORTING-7.1.md).
-
-
-Experimental Linux mainline bring-up for the OnePlus 15 platform based on Qualcomm SM8850 / Canoe.
+Experimental Linux mainline bring-up for the OnePlus 15 based on Qualcomm SM8850 / Canoe.
 
 > **Warning**
 >
-> This repository is a development tree. The current kernel and device-tree work are **not ready to flash**. A successful compile does not prove that an image is safe to boot on hardware. Keep a known-good recovery path and do not use generated artifacts on a daily-use device.
+> This is a development tree. The current kernel and device-tree work are not ready for general flashing or daily use. A successful compile or schema check does not prove that an image is safe to boot. Keep a known-good recovery path and treat every hardware test as a separately reviewed operation.
 
-## Project goals
-
-- Bring the OnePlus 15 hardware platform up on a clean Linux `v7.1.1` baseline.
-- Replace downstream-only Qualcomm and Android interfaces with upstream Linux APIs.
-- Keep each hardware block in a reviewable, independently testable commit.
-- Reach early serial output before enabling storage, display, camera, audio, wireless, or other complex subsystems.
-- Preserve reproducible reports for every major compatibility and build milestone.
-
-## Platform identity
+## Active baseline
 
 | Item | Value |
 |---|---|
 | Device | OnePlus 15 |
 | Qualcomm platform | SM8850 |
 | Device-tree family | Canoe |
-| OnePlus device-tree overlays | Infiniti family |
-| Mainline baseline | Linux `v7.1.1` |
-| OEM kernel generation | Android 16 / Linux `7.1.1` |
+| OnePlus overlay family | Infiniti |
+| Active mainline baseline | Linux `v7.1.1` |
+| Active development branch | `bringup/canoe-v7.1` |
 | Primary architecture | ARM64 |
 | Toolchain | LLVM / Clang with integrated assembler |
+| OEM source generation | Android 16 / Linux `6.12.23` |
 
-The OEM source contains both `sun` and `canoe` targets. The OnePlus product mapping selects the Canoe DTB family, so this port treats `qcom,canoe-*` compatibles as the authoritative hardware descriptions for the device.
+The OEM 6.12.23 source is used only as a hardware and implementation reference. Active development, validation, and future boot artifacts are based on Linux 7.1.1.
+
+## Project goals
+
+- Bring the OnePlus 15 hardware platform up on a clean Linux 7.1.1 baseline.
+- Replace downstream-only Qualcomm and Android interfaces with upstream Linux APIs.
+- Port one hardware block at a time in focused, independently reviewable commits.
+- Validate bindings and changed translation units before enabling them in the device tree.
+- Reach a reproducible minimal boot before enabling display, camera, audio, wireless, modem, or other complex subsystems.
+- Keep physical-device operations separate from source and compile validation.
 
 ## Current status
 
-### Completed or validated
+### Integrated and compile-validated on Linux 7.1.1
 
-- Clean Linux `v7.1.1` source baseline established.
-- Non-Bazel ARM64 kernel build completed with LLVM/Kbuild.
-- Build configuration and OEM symbol-gap reporting automated.
-- Full downstream `qcom/canoe.dts` include closure analyzed.
-- Downstream Canoe DTS preprocesses and compiles with `dtc`; this is a dependency milestone, not a mainline-ready DTB.
-- Canoe TLMM/pinctrl driver adapted to the Linux 6.12 Qualcomm pinctrl interface and compiled without warnings.
-- Canoe UFS PHY-specific source compiled in isolation after supplying its downstream private headers; the shared framework still requires separate validation.
+- Clean compact Linux 7.1.1 repository baseline.
+- Canoe TLMM/pinctrl driver and binding.
+- Canoe global clock controller.
+- Canoe TCSR reference clock controller.
+- Canoe HLOS-voted RPMh interconnect fabrics.
+- Canoe UFS Gear 5 QMP PHY data and binding.
+- Canoe UFS host binding with ICE and MCQ register resources.
+- Linux 7.1 Qualcomm UFS host MCQ resource handling verified without downstream host-driver changes.
+
+The merged subsystem work has been validated with targeted DT schema checks where applicable and ARM64 LLVM builds using `LLVM=1`, `LLVM_IAS=1`, and `W=1`. These results are compile-only unless explicitly stated otherwise.
 
 ### In progress
 
-- Permanent Canoe pinctrl integration and publication.
-- Canoe GCC adaptation from downstream voltage-voting structures to mainline clock APIs.
-- Canoe interconnect conversion from downstream QoS structures to mainline RPMh interconnect data.
-- UFS PHY migration to the mainline QMP UFS framework.
-- Minimal mainline Canoe DTS for early console and core SoC resources.
+- Minimal Canoe RPMh clock descriptor.
+- PMH0110 RPMh regulator rail table and compatible match.
+- Minimal Canoe SoC device tree.
+- OnePlus 15 board device tree.
+- Targeted `dtbs_check` cleanup.
+- Built-in bring-up kernel configuration and complete kernel/DTB build.
 
-### Not yet validated
+### Not yet validated on Linux 7.1.1 hardware
 
-- Booting on physical hardware.
-- Early console output from a mainline-built image.
-- UFS storage access.
+- Successful physical boot.
+- Early console output.
+- UFS storage enumeration or access.
 - USB, display, GPU, camera, audio, modem, Wi-Fi, Bluetooth, sensors, charging, suspend, or thermal management.
 - Android userspace compatibility.
 
+Earlier Linux 6.12 hardware experiments are historical evidence only and are not Linux 7.1.1 boot validation.
+
+## Branch model
+
+| Branch | Purpose |
+|---|---|
+| `main` | Current documented Linux 7.1.1 project entry point |
+| `bringup/canoe-v7.1` | Active Linux 7.1.1 integration branch |
+| `port/*-v7.1` | Temporary subsystem validation branches; remove after merge |
+| `codex/*` | Optional local or remote automation branches based on Linux 7.1.1 |
+
+Legacy Linux 6.12.23 development branches are not part of the active branch model. Historical source provenance is identified by immutable commit IDs rather than long-lived development branches.
+
+Because this repository uses compact snapshot history, new development branches must be based on the compact Linux 7.1.1 project history. Do not publish branches containing the full upstream Linux history.
+
+## Repository layout
+
+```text
+arch/arm64/boot/dts/qcom/       Canoe and OnePlus 15 device-tree work
+drivers/clk/qcom/               Qualcomm clock-controller support
+drivers/interconnect/qcom/      Qualcomm NoC/interconnect support
+drivers/pinctrl/qcom/           Canoe TLMM support
+drivers/phy/qualcomm/           Canoe UFS and future PHY support
+drivers/regulator/              RPMh regulator support
+tools/oneplus15-port/           Bring-up, validation, and reporting helpers
+artifacts/oneplus15/             Generated local reports and build artifacts
+.port-work/                      Local reference-source mirrors; never commit
+```
+
+Generated output directories are intentionally excluded from source commits.
+
+## Validation requirements
+
+For every source change:
+
+```bash
+git diff --check
+```
+
+Changed C translation units must be built for ARM64 with LLVM:
+
+```bash
+make O=out/oneplus15 \
+  ARCH=arm64 \
+  LLVM=1 \
+  LLVM_IAS=1 \
+  W=1 \
+  <object-target>
+```
+
+Treat compiler warnings as failures.
+
+For binding changes, run a targeted `dt_binding_check`. For DTS changes, build the exact DTB and run targeted `dtbs_check`. Record the commands, warnings, errors, output hashes, and whether the result is compile-only or hardware-tested.
+
+## Hardware safety policy
+
+- Do not flash compile-only artifacts.
+- Slot B is the stock recovery path and must not be modified.
+- Slot A is test-only.
+- Sparse Fastboot writes require `-S 16M`.
+- Do not repeat a slot-A boot without a new evidence channel or changed diagnostic.
+- Do not use direct watchdog MMIO.
+- ADB, Fastboot, flashing, slot changes, and reboots are manual operations outside automated source-porting workflows.
+
+Read [docs/SAFETY.md](docs/SAFETY.md) before considering a device test.
+
 ## Documentation
 
+- [Linux 7.1 migration notes](PORTING-7.1.md)
 - [Build and report workflow](docs/BUILDING.md)
 - [Detailed subsystem status](docs/STATUS.md)
 - [Staged bring-up roadmap](docs/ROADMAP.md)
@@ -72,72 +140,17 @@ The OEM source contains both `sun` and `canoe` targets. The OnePlus product mapp
 - [Source references and provenance](docs/SOURCE_REFERENCES.md)
 - [Contribution and validation guidelines](CONTRIBUTING.md)
 
-## Repository layout
+## Source provenance
+
+The bring-up compares Linux 7.1.1 with public Android Common Kernel and OnePlus SM8850 sources. Those downstream repositories are reference material only; this project does not aim to reproduce the Android vendor kernel wholesale.
+
+The final Linux 6.12.23 development snapshot used during migration is identified by commit:
 
 ```text
-arch/arm64/boot/dts/qcom/       Mainline device-tree work
-drivers/clk/qcom/               Qualcomm clock controller work
-drivers/interconnect/qcom/      Qualcomm NoC/interconnect work
-drivers/pinctrl/qcom/           Canoe TLMM support
-drivers/phy/qualcomm/           Canoe UFS/USB PHY work
-tools/oneplus15-port/           Bring-up and reporting helpers
-artifacts/oneplus15/             Generated local reports and build artifacts
-.port-work/                      Local OEM source mirrors; never commit this directory
+5555043e466f5a12dbc029254883f3f8ed7061cd
 ```
 
-Generated output directories are intentionally excluded from source commits.
-
-## Branch model
-
-| Branch | Purpose |
-|---|---|
-| `main` | Compact, documented source snapshot and stable project entry point |
-| `bringup/canoe-core-probe` | Experimental core-driver compatibility work |
-| `bringup/canoe-ufs` | Planned UFS framework and PHY validation |
-| `backup/*-full-history` | Local-only safety branches retaining the original Linux history |
-
-Because this repository was created from a compact source snapshot, development branches should remain based on the repository's compact `main` history. Pushing a branch based on the full upstream Linux history may attempt to enumerate and upload millions of objects. Read [docs/GIT_WORKFLOW.md](docs/GIT_WORKFLOW.md) before publishing a development branch.
-
-## Getting started
-
-Run the host check first:
-
-```bash
-./tools/oneplus15-port/portctl doctor
-```
-
-Typical setup from the repository root:
-
-```bash
-./tools/oneplus15-port/portctl sync
-./tools/oneplus15-port/portctl configure
-./tools/oneplus15-port/portctl build
-```
-
-The exact helper commands available may change as the bring-up tooling evolves. Run the following to inspect the current interface:
-
-```bash
-./tools/oneplus15-port/portctl help
-```
-
-Read [docs/BUILDING.md](docs/BUILDING.md) for prerequisites, environment overrides, reports, and build-success criteria.
-
-## Development rules
-
-1. Do not flash compile-only artifacts.
-2. Keep imported OEM code uncommitted until it compiles against the mainline tree.
-3. Do not replace mainline core headers with downstream versions.
-4. Port one subsystem at a time.
-5. Preserve the first complete compiler log for every failed probe.
-6. Keep generated reports out of source commits unless they document a reproducible milestone.
-7. Prefer mainline abstractions over carrying downstream support frameworks.
-8. Update `docs/STATUS.md` whenever a subsystem milestone changes.
-
-See [CONTRIBUTING.md](CONTRIBUTING.md) for commit and testing expectations and [docs/SAFETY.md](docs/SAFETY.md) before considering any device test.
-
-## Source references
-
-The bring-up work compares this tree with public Android Common Kernel and OnePlus SM8850 sources. Those repositories are references only; this project does not aim to reproduce the downstream kernel wholesale. Exact source roles, branch names, revision locking, and import rules are documented in [docs/SOURCE_REFERENCES.md](docs/SOURCE_REFERENCES.md).
+Do not base new development on that historical snapshot.
 
 ## License
 
