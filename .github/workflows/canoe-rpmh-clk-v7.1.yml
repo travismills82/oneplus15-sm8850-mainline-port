@@ -1,37 +1,59 @@
-name: Canoe RPMh clocks v7.1 port
+name: Canoe RPMh clocks v7.1 validation
 
 on:
   pull_request:
-    branches: [bringup/canoe-v7.1]
+    branches:
+      - main
     paths:
       - .github/workflows/canoe-rpmh-clk-v7.1.yml
-      - tools/oneplus15-port/ci/port_canoe_rpmh_clk_v71.py
+      - Documentation/devicetree/bindings/clock/qcom,rpmhcc.yaml
+      - drivers/clk/qcom/clk-rpmh.c
   workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
-  port-and-validate:
+  validate:
     runs-on: ubuntu-24.04
     timeout-minutes: 40
+
     steps:
-      - uses: actions/checkout@v4
+      - name: Check out pull request head
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
-          ref: ${{ github.head_ref || github.ref_name }}
 
-      - name: Add minimal Canoe RPMh clock descriptor
+      - name: Verify focused source delta
         run: |
           set -euxo pipefail
           mkdir -p /tmp/canoe-rpmh-clk-ci
-          python3 tools/oneplus15-port/ci/port_canoe_rpmh_clk_v71.py 2>&1 | tee /tmp/canoe-rpmh-clk-ci/port.log
-          git diff --check
+          git diff --check origin/main...HEAD
+          git diff origin/main...HEAD -- drivers/clk/qcom/clk-rpmh.c \
+            > /tmp/canoe-rpmh-clk-ci/clk-rpmh.patch
+          grep -q 'qcom,canoe-rpmh-clk' drivers/clk/qcom/clk-rpmh.c
+          grep -q 'clk_rpmh_bi_tcxo_div4.hw' drivers/clk/qcom/clk-rpmh.c
+          grep -q 'clk_rpmh_bi_tcxo_div4_ao.hw' drivers/clk/qcom/clk-rpmh.c
+          grep -q 'clk_rpmh_ipa.hw' drivers/clk/qcom/clk-rpmh.c
+          ! grep -q 'clk_fixed_factor_ops' /tmp/canoe-rpmh-clk-ci/clk-rpmh.patch
+          ! grep -q 'RPMH_CXO_PAD_CLK' /tmp/canoe-rpmh-clk-ci/clk-rpmh.patch
 
-      - name: Install dependencies
+      - name: Install kernel and schema dependencies
         run: |
+          set -euxo pipefail
           sudo apt-get update
-          sudo apt-get install -y bc bison build-essential clang flex libelf-dev libssl-dev lld llvm make python3-venv
+          sudo apt-get install -y \
+            bc \
+            bison \
+            build-essential \
+            clang \
+            flex \
+            libelf-dev \
+            libssl-dev \
+            lld \
+            llvm \
+            make \
+            python3-venv
           python3 -m venv .venv-dtschema
           .venv-dtschema/bin/pip install --upgrade pip
           .venv-dtschema/bin/pip install dtschema
@@ -40,37 +62,46 @@ jobs:
       - name: Validate RPMh clock binding
         run: |
           set -euxo pipefail
-          make O=out/canoe-rpmh-clk ARCH=arm64 LLVM=1 LLVM_IAS=1 DT_SCHEMA_FILES=Documentation/devicetree/bindings/clock/qcom,rpmhcc.yaml dt_binding_check 2>&1 | tee /tmp/canoe-rpmh-clk-ci/dt-binding-check.log
+          make \
+            O=out/canoe-rpmh-clk \
+            ARCH=arm64 \
+            LLVM=1 \
+            LLVM_IAS=1 \
+            DT_SCHEMA_FILES=Documentation/devicetree/bindings/clock/qcom,rpmhcc.yaml \
+            dt_binding_check \
+            2>&1 | tee /tmp/canoe-rpmh-clk-ci/dt-binding-check.log
 
       - name: Build RPMh clock translation unit
         run: |
           set -euxo pipefail
-          make O=out/canoe-rpmh-clk ARCH=arm64 LLVM=1 LLVM_IAS=1 defconfig
-          make O=out/canoe-rpmh-clk ARCH=arm64 LLVM=1 LLVM_IAS=1 W=1 -j2 drivers/clk/qcom/clk-rpmh.o 2>&1 | tee /tmp/canoe-rpmh-clk-ci/object-build.log
+          make \
+            O=out/canoe-rpmh-clk \
+            ARCH=arm64 \
+            LLVM=1 \
+            LLVM_IAS=1 \
+            defconfig \
+            2>&1 | tee /tmp/canoe-rpmh-clk-ci/defconfig.log
+          make \
+            O=out/canoe-rpmh-clk \
+            ARCH=arm64 \
+            LLVM=1 \
+            LLVM_IAS=1 \
+            W=1 \
+            -j2 \
+            drivers/clk/qcom/clk-rpmh.o \
+            2>&1 | tee /tmp/canoe-rpmh-clk-ci/object-build.log
           test -s out/canoe-rpmh-clk/drivers/clk/qcom/clk-rpmh.o
-          llvm-nm -n out/canoe-rpmh-clk/drivers/clk/qcom/clk-rpmh.o | tee /tmp/canoe-rpmh-clk-ci/clk-rpmh.nm
-          sha256sum out/canoe-rpmh-clk/drivers/clk/qcom/clk-rpmh.o | tee /tmp/canoe-rpmh-clk-ci/clk-rpmh.o.sha256
-          ! grep -E 'warning:|error:' /tmp/canoe-rpmh-clk-ci/object-build.log
+          llvm-nm -n out/canoe-rpmh-clk/drivers/clk/qcom/clk-rpmh.o \
+            | tee /tmp/canoe-rpmh-clk-ci/clk-rpmh.nm
+          sha256sum out/canoe-rpmh-clk/drivers/clk/qcom/clk-rpmh.o \
+            | tee /tmp/canoe-rpmh-clk-ci/clk-rpmh.o.sha256
+          if grep -E 'warning:|error:' /tmp/canoe-rpmh-clk-ci/object-build.log; then
+            echo 'Compiler warning or error detected in RPMh clock build' >&2
+            exit 1
+          fi
 
-      - name: Verify no RPMh core workaround was added
-        run: |
-          set -euxo pipefail
-          git diff -- drivers/clk/qcom/clk-rpmh.c > /tmp/canoe-rpmh-clk-ci/clk-rpmh.patch
-          ! grep -q 'clk_fixed_factor_ops' /tmp/canoe-rpmh-clk-ci/clk-rpmh.patch
-          ! grep -q 'RPMH_CXO_PAD_CLK' /tmp/canoe-rpmh-clk-ci/clk-rpmh.patch
-          git diff --check
-
-      - name: Commit validated Canoe RPMh clocks
-        run: |
-          set -euxo pipefail
-          git config user.name github-actions[bot]
-          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
-          git add Documentation/devicetree/bindings/clock/qcom,rpmhcc.yaml drivers/clk/qcom/clk-rpmh.c
-          git diff --cached --check
-          git commit -s -m 'clk: qcom: rpmh: add Canoe clocks' -m 'Map Canoe to the existing /4 XO ARC clocks and IPA clock without carrying the old fixed-factor probe workaround.' -m 'Validated with dt_binding_check and an ARM64 LLVM W=1 object build.'
-          git push origin HEAD:port/canoe-rpmh-clk-v7.1
-
-      - if: always()
+      - name: Upload validation evidence
+        if: always()
         uses: actions/upload-artifact@v4
         with:
           name: canoe-rpmh-clk-v7.1-validation
