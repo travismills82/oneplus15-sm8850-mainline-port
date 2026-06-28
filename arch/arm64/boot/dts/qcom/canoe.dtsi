@@ -1,0 +1,12 @@
+// SPDX-License-Identifier: BSD-3-Clause
+/*
+ * Copyright (c) 2026, Travis Mills <travismills82@gmail.com>
+ */
+
+/ {
+	#address-cells = <2>;
+	#size-cells = <2>;
+
+	chosen {
+	};
+};
