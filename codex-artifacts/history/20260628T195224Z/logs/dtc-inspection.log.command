@@ -1,0 +1,1 @@
+COMMAND: /tmp/oneplus15-fixed-clocks-recovery.pd7vWa/source-worktree/out/canoe-fixed-clocks-recovery/scripts/dtc/dtc -I dtb -O dts -o /home/travis/Android/oneplus15-codex-reports/canoe-fixed-clocks-recovery-logs/canoe-oneplus-15.compiled.dts /tmp/oneplus15-fixed-clocks-recovery.pd7vWa/source-worktree/out/canoe-fixed-clocks-recovery/arch/arm64/boot/dts/qcom/canoe-oneplus-15.dtb
