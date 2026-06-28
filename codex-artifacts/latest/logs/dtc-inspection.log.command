@@ -1,0 +1,1 @@
+COMMAND: /tmp/oneplus15-canoe-scm-v3.KucLra/out/canoe-scm/scripts/dtc/dtc -I dtb -O dts -o /home/travis/Android/oneplus15-codex-reports/canoe-scm-validation-logs-v3/canoe-oneplus-15.compiled.dts /tmp/oneplus15-canoe-scm-v3.KucLra/out/canoe-scm/arch/arm64/boot/dts/qcom/canoe-oneplus-15.dtb

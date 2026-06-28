@@ -1,0 +1,15 @@
+make[1]: Entering directory '/tmp/oneplus15-canoe-scm-v3.KucLra/out/canoe-scm'
+  UPD     include/config/kernel.release
+  HOSTCC  scripts/dtc/libfdt/fdt.o
+  HOSTCC  scripts/dtc/libfdt/fdt_ro.o
+  HOSTCC  scripts/dtc/libfdt/fdt_wip.o
+  HOSTCC  scripts/dtc/libfdt/fdt_sw.o
+  HOSTCC  scripts/dtc/libfdt/fdt_rw.o
+  HOSTCC  scripts/dtc/libfdt/fdt_strerror.o
+  HOSTCC  scripts/dtc/libfdt/fdt_empty_tree.o
+  HOSTCC  scripts/dtc/libfdt/fdt_addresses.o
+  HOSTCC  scripts/dtc/libfdt/fdt_overlay.o
+  HOSTCC  scripts/dtc/fdtoverlay.o
+  HOSTLD  scripts/dtc/fdtoverlay
+  DTC     arch/arm64/boot/dts/qcom/canoe-oneplus-15.dtb
+make[1]: Leaving directory '/tmp/oneplus15-canoe-scm-v3.KucLra/out/canoe-scm'

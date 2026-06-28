@@ -1,0 +1,18 @@
+/dts-v1/;
+
+/ {
+	#address-cells = <0x02>;
+	#size-cells = <0x02>;
+	model = "OnePlus 15";
+	compatible = "oneplus,oneplus-15", "qcom,canoe";
+
+	firmware {
+
+		scm {
+			compatible = "qcom,scm-canoe", "qcom,scm";
+		};
+	};
+
+	chosen {
+	};
+};

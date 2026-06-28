@@ -1,0 +1,2 @@
+Documentation/devicetree/bindings/firmware/qcom,scm.yaml
+arch/arm64/boot/dts/qcom/canoe.dtsi
