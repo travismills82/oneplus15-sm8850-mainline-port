@@ -1,11 +1,11 @@
 # Latest Codex artifact handoff
 
 - Project: OnePlus 15 / Canoe Linux 7.1.1
-- Latest task: Canoe GIC provenance audit
-- Published UTC: `20260628T204905Z-amanual-publish`
-- Main commit: `7da2b8056503ca8d5435f909016af3a5ebe0e26b`
-- Audit result: `passed`
-- Codex verdict: `HOLD_FOR_MORE_EVIDENCE`
+- Latest task: Canoe GICv3 core controller
+- Published UTC: `20260628T215625Z`
+- Source branch: `port/canoe-gic-v7.1`
+- Source commit: `not created`
+- Validation result: `failed`
 
 See:
 
