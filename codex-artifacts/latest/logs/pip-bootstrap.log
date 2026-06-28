@@ -1,4 +1,0 @@
-Requirement already satisfied: pip in /home/travis/.cache/oneplus15-dtschema-venv/lib/python3.14/site-packages (26.1.2)
-Requirement already satisfied: setuptools in /home/travis/.cache/oneplus15-dtschema-venv/lib/python3.14/site-packages (82.0.1)
-Requirement already satisfied: wheel in /home/travis/.cache/oneplus15-dtschema-venv/lib/python3.14/site-packages (0.47.0)
-Requirement already satisfied: packaging>=24.0 in /home/travis/.cache/oneplus15-dtschema-venv/lib/python3.14/site-packages (from wheel) (26.2)

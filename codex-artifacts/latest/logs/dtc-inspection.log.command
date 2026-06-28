@@ -1,1 +1,0 @@
-COMMAND: /tmp/oneplus15-canoe-psci.5ZJEBd/out/canoe-psci/scripts/dtc/dtc -I dtb -O dts -o /home/travis/Android/oneplus15-codex-reports/canoe-psci-validation-logs/canoe-oneplus-15.compiled.dts /tmp/oneplus15-canoe-psci.5ZJEBd/out/canoe-psci/arch/arm64/boot/dts/qcom/canoe-oneplus-15.dtb

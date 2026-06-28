@@ -1,1 +1,0 @@
-COMMAND: make O=/tmp/oneplus15-canoe-psci.5ZJEBd/out/canoe-psci ARCH=arm64 LLVM=1 LLVM_IAS=1 W=1 V=1 CHECK_DTBS=y DT_SCHEMA_FILES=Documentation/devicetree/bindings/arm/qcom.yaml:Documentation/devicetree/bindings/arm/psci.yaml:Documentation/devicetree/bindings/firmware/qcom\,scm.yaml qcom/canoe-oneplus-15.dtb
