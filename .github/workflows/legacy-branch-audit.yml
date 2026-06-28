@@ -1,0 +1,108 @@
+name: Legacy branch audit
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/legacy-branch-audit.yml
+
+permissions:
+  contents: write
+
+jobs:
+  audit-and-remove:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+
+    steps:
+      - name: Preserve final Linux 6.12.23 snapshot as a tag
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+          LEGACY_SHA: 5555043e466f5a12dbc029254883f3f8ed7061cd
+        run: |
+          set -euxo pipefail
+          gh api "repos/${REPOSITORY}/git/ref/tags/archive/canoe-6.12.23-final" >/dev/null 2>&1 || \
+            gh api --method POST "repos/${REPOSITORY}/git/refs" \
+              -f ref='refs/tags/archive/canoe-6.12.23-final' \
+              -f sha="${LEGACY_SHA}"
+
+      - name: Remove verified Linux 6.12.23 branch refs
+        env:
+          GH_TOKEN: ${{ github.token }}
+          REPOSITORY: ${{ github.repository }}
+        run: |
+          set -euo pipefail
+          deleted="${RUNNER_TEMP}/deleted.txt"
+          kept="${RUNNER_TEMP}/kept.txt"
+          : >"${deleted}"
+          : >"${kept}"
+
+          gh api --paginate "repos/${REPOSITORY}/branches?per_page=100" \
+            --jq '.[].name' >"${RUNNER_TEMP}/branches.txt"
+
+          while IFS= read -r branch; do
+            case "${branch}" in
+              main|bringup/canoe-v7.1|mainline/v7.1.1-snapshot|maintenance-v7.1-docs)
+                printf '%s\tprotected-current\n' "${branch}" >>"${kept}"
+                continue
+                ;;
+            esac
+
+            encoded="$(python3 - "${branch}" <<'PY'
+import sys
+import urllib.parse
+print(urllib.parse.quote(sys.argv[1], safe=''))
+PY
+)"
+
+            json="$(gh api "repos/${REPOSITORY}/contents/Makefile?ref=${encoded}" 2>/dev/null || true)"
+            kernel_version="unknown"
+
+            if [[ -n "${json}" ]]; then
+              content="$(jq -r '.content // empty' <<<"${json}" | tr -d '\n' | base64 --decode 2>/dev/null || true)"
+              version="$(awk '$1 == "VERSION" {print $3; exit}' <<<"${content}")"
+              patchlevel="$(awk '$1 == "PATCHLEVEL" {print $3; exit}' <<<"${content}")"
+              sublevel="$(awk '$1 == "SUBLEVEL" {print $3; exit}' <<<"${content}")"
+              if [[ -n "${version}" && -n "${patchlevel}" && -n "${sublevel}" ]]; then
+                kernel_version="${version}.${patchlevel}.${sublevel}"
+              fi
+            fi
+
+            remove=0
+            reason=""
+            if [[ "${kernel_version}" == "6.12.23" ]]; then
+              remove=1
+              reason="kernel-${kernel_version}"
+            elif [[ "${branch}" == *6.12* ]]; then
+              remove=1
+              reason="legacy-name"
+            elif [[ "${branch}" == backup/* ]]; then
+              remove=1
+              reason="legacy-backup"
+            fi
+
+            if (( remove == 1 )); then
+              gh api --method DELETE "repos/${REPOSITORY}/git/refs/heads/${encoded}"
+              printf '%s\t%s\t%s\n' "${branch}" "${kernel_version}" "${reason}" >>"${deleted}"
+            else
+              printf '%s\t%s\n' "${branch}" "${kernel_version}" >>"${kept}"
+            fi
+          done <"${RUNNER_TEMP}/branches.txt"
+
+          {
+            echo '## Legacy branch cleanup'
+            echo
+            echo '### Deleted'
+            echo '```text'
+            [[ -s "${deleted}" ]] && cat "${deleted}" || echo none
+            echo '```'
+            echo
+            echo '### Retained'
+            echo '```text'
+            cat "${kept}"
+            echo '```'
+            echo
+            echo 'Archive tag: `archive/canoe-6.12.23-final`'
+          } >>"${GITHUB_STEP_SUMMARY}"
