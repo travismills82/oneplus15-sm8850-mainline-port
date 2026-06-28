@@ -1,0 +1,135 @@
+name: Canoe SCM v7.1 validation
+
+on:
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/canoe-scm-v7.1-validation.yml
+      - Documentation/devicetree/bindings/firmware/qcom,scm.yaml
+      - arch/arm64/boot/dts/qcom/canoe.dtsi
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 40
+
+    steps:
+      - name: Check out pull request head
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Verify focused source delta
+        run: |
+          set -euxo pipefail
+          mkdir -p /tmp/canoe-scm-ci
+          git diff --check origin/main...HEAD
+          git diff origin/main...HEAD -- \
+            Documentation/devicetree/bindings/firmware/qcom,scm.yaml \
+            arch/arm64/boot/dts/qcom/canoe.dtsi \
+            > /tmp/canoe-scm-ci/source.patch
+          grep -q 'qcom,scm-canoe' Documentation/devicetree/bindings/firmware/qcom,scm.yaml
+          grep -q 'qcom,scm-canoe' arch/arm64/boot/dts/qcom/canoe.dtsi
+          ! grep -q '^+.*\<reg\>' /tmp/canoe-scm-ci/source.patch
+          ! grep -q '^+.*interrupts' /tmp/canoe-scm-ci/source.patch
+          ! grep -q '^+.*clocks' /tmp/canoe-scm-ci/source.patch
+          ! grep -q '^+.*interconnects' /tmp/canoe-scm-ci/source.patch
+          ! grep -q '^+.*memory-region' /tmp/canoe-scm-ci/source.patch
+
+      - name: Install validation dependencies
+        run: |
+          set -euxo pipefail
+          sudo apt-get update
+          sudo apt-get install -y \
+            bc \
+            bison \
+            build-essential \
+            clang \
+            flex \
+            libelf-dev \
+            libssl-dev \
+            lld \
+            llvm \
+            make \
+            python3-venv
+          python3 -m venv .venv-dtschema
+          .venv-dtschema/bin/pip install --upgrade pip
+          .venv-dtschema/bin/pip install dtschema
+          echo "$PWD/.venv-dtschema/bin" >> "$GITHUB_PATH"
+
+      - name: Validate SCM binding
+        run: |
+          set -euxo pipefail
+          make \
+            O=out/canoe-scm \
+            ARCH=arm64 \
+            LLVM=1 \
+            LLVM_IAS=1 \
+            DT_SCHEMA_FILES=Documentation/devicetree/bindings/firmware/qcom,scm.yaml \
+            dt_binding_check \
+            2>&1 | tee /tmp/canoe-scm-ci/dt-binding-check.log
+
+      - name: Build Canoe OnePlus 15 DTB
+        run: |
+          set -euxo pipefail
+          make \
+            O=out/canoe-scm \
+            ARCH=arm64 \
+            LLVM=1 \
+            LLVM_IAS=1 \
+            defconfig \
+            2>&1 | tee /tmp/canoe-scm-ci/defconfig.log
+          make \
+            O=out/canoe-scm \
+            ARCH=arm64 \
+            LLVM=1 \
+            LLVM_IAS=1 \
+            W=1 \
+            qcom/canoe-oneplus-15.dtb \
+            2>&1 | tee /tmp/canoe-scm-ci/dtb-build.log
+          test -s out/canoe-scm/arch/arm64/boot/dts/qcom/canoe-oneplus-15.dtb
+
+      - name: Validate Canoe SCM node
+        run: |
+          set -euxo pipefail
+          make \
+            O=out/canoe-scm \
+            ARCH=arm64 \
+            LLVM=1 \
+            LLVM_IAS=1 \
+            DT_SCHEMA_FILES='Documentation/devicetree/bindings/arm/qcom.yaml Documentation/devicetree/bindings/firmware/qcom,scm.yaml' \
+            qcom/canoe-oneplus-15.dtb \
+            dtbs_check \
+            2>&1 | tee /tmp/canoe-scm-ci/dtbs-check.log
+          out/canoe-scm/scripts/dtc/dtc \
+            -I dtb \
+            -O dts \
+            out/canoe-scm/arch/arm64/boot/dts/qcom/canoe-oneplus-15.dtb \
+            > /tmp/canoe-scm-ci/canoe-oneplus-15.compiled.dts
+          grep -q 'qcom,scm-canoe' /tmp/canoe-scm-ci/canoe-oneplus-15.compiled.dts
+          sha256sum \
+            out/canoe-scm/arch/arm64/boot/dts/qcom/canoe-oneplus-15.dtb \
+            | tee /tmp/canoe-scm-ci/canoe-oneplus-15.dtb.sha256
+
+      - name: Run source checks
+        run: |
+          set -euxo pipefail
+          git diff --check origin/main...HEAD
+          git diff origin/main...HEAD -- \
+            Documentation/devicetree/bindings/firmware/qcom,scm.yaml \
+            arch/arm64/boot/dts/qcom/canoe.dtsi \
+            | scripts/checkpatch.pl --strict --no-tree - \
+            2>&1 | tee /tmp/canoe-scm-ci/checkpatch.log
+
+      - name: Upload validation evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: canoe-scm-v7.1-validation
+          path: /tmp/canoe-scm-ci
+          if-no-files-found: warn
+          retention-days: 30
