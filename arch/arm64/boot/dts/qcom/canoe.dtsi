@@ -7,6 +7,12 @@
 	#address-cells = <2>;
 	#size-cells = <2>;
 
+	firmware {
+		scm: scm {
+			compatible = "qcom,scm-canoe", "qcom,scm";
+		};
+	};
+
 	chosen {
 	};
 };
