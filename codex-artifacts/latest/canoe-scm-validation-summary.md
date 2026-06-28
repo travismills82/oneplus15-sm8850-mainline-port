@@ -33,7 +33,7 @@ download-mode properties, or other unverified resources were added.
 - exact `qcom/canoe-oneplus-15.dtb` build with `W=1`
 - exact per-DTB kernel schema path using `CHECK_DTBS=y`
 - colon-separated board and SCM schema filters
-- direct `dt-validate` with empty stderr
+- direct `dt-validate` with empty stdout and stderr
 - compiled-DTB inspection with DTC
 - separate strict checkpatch reviews
 - no actionable warnings or errors
@@ -45,9 +45,3 @@ download-mode properties, or other unverified resources were added.
 ## Hardware status
 
 Compile and schema validation only. No hardware operation or claim was made.
-
-## Next action
-
-Independently verify the published logs, then merge PR #12 using a signed-off
-squash commit because the two GitHub-created source commits lack signoff
-trailers.
