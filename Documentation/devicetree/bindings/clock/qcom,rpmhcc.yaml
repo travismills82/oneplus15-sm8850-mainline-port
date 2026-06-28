@@ -17,6 +17,7 @@ description: |
 properties:
   compatible:
     enum:
+      - qcom,canoe-rpmh-clk
       - qcom,eliza-rpmh-clk
       - qcom,glymur-rpmh-clk
       - qcom,kaanapali-rpmh-clk
