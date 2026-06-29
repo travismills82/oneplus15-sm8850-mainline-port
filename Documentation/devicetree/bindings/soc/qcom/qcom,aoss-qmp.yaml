@@ -17,14 +17,11 @@ description:
   The protocol used to communicate in the message RAM is known as Qualcomm
   Messaging Protocol (QMP)
 
-  The AOSS side channel exposes control over a set of resources, used to control
-  a set of debug related clocks and to affect the low power state of resources
-  related to the secondary subsystems.
-
 properties:
   compatible:
     items:
       - enum:
+          - qcom,canoe-aoss-qmp
           - qcom,glymur-aoss-qmp
           - qcom,kaanapali-aoss-qmp
           - qcom,milos-aoss-qmp
