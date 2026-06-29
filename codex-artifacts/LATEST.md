@@ -1,9 +1,8 @@
 # Latest Codex artifact handoff
 
-- Latest task: Canoe IPCC binding validation
-- Published UTC: `20260629T220613Z-ipcc-binding-1`
-- Source branch: `port/canoe-ipcc-binding-v7.1`
-- Source commit: `d517223ce0bb1da248db2b7bc2d27b08a20b969c`
+- Latest task: Canoe IPCC DTS validation
+- Source branch: `port/canoe-ipcc-v7.1`
+- Source commit: `4db4ef22947c65d3acf79987d05574f471c59033`
 - Validation result: `passed`
 
 See `codex-artifacts/latest/MANIFEST.md`.
