@@ -50,6 +50,17 @@
 		#size-cells = <2>;
 		ranges = <0x0 0x0 0x0 0x0 0x10 0x0>;
 
+		ipcc: mailbox@1106000 {
+			compatible = "qcom,canoe-ipcc", "qcom,ipcc";
+			reg = <0x0 0x01106000 0x0 0x1000>;
+
+			interrupts = <GIC_SPI 246 IRQ_TYPE_LEVEL_HIGH>;
+			interrupt-controller;
+			#interrupt-cells = <3>;
+
+			#mbox-cells = <2>;
+		};
+
 		pdc: interrupt-controller@b220000 {
 			compatible = "qcom,canoe-pdc", "qcom,pdc";
 			reg = <0x0 0xb220000 0x0 0x10000>,
