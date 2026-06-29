@@ -1,0 +1,211 @@
+
+===== report-diff-check-1.log =====
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:80: space before tab in indent.
++ 	#address-cells = <2>;
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:81: space before tab in indent.
++ 	#size-cells = <2>;
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:82: space before tab in indent.
++ 	interrupt-parent = <&intc>;
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:84: space before tab in indent.
++ 	clocks {
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:85: space before tab in indent.
++ 		bi_tcxo: clock-19200000 {
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:86: space before tab in indent.
++ 			compatible = "fixed-clock";
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:87: space before tab in indent.
++ 			#clock-cells = <0>;
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:88: space before tab in indent.
++ 			clock-frequency = <19200000>;
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:89: space before tab in indent.
++ 		};
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:91: space before tab in indent.
++ 		sleep_clk: clock-32768 {
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:92: space before tab in indent.
++ 			compatible = "fixed-clock";
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:93: space before tab in indent.
++ 			#clock-cells = <0>;
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:94: space before tab in indent.
++ 			clock-frequency = <32768>;
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:95: space before tab in indent.
++ 		};
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:96: space before tab in indent.
++ 	};
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:98: space before tab in indent.
++ 	firmware {
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:99: space before tab in indent.
++ 		scm: scm {
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:100: space before tab in indent.
++ 			compatible = "qcom,scm-canoe", "qcom,scm";
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:101: space before tab in indent.
++ 		};
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:102: space before tab in indent.
++ 	};
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:104: space before tab in indent.
++ 	psci {
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:105: space before tab in indent.
++ 		compatible = "arm,psci-1.0";
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:106: space before tab in indent.
++ 		method = "smc";
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:107: space before tab in indent.
++ 	};
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:109: space before tab in indent.
++ 	timer {
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:110: space before tab in indent.
++ 		compatible = "arm,armv8-timer";
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:111: space before tab in indent.
++ 		interrupts = <GIC_PPI 13 (GIC_CPU_MASK_SIMPLE(8) | IRQ_TYPE_LEVEL_LOW)>,
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:112: space before tab in indent.
++ 			     <GIC_PPI 14 (GIC_CPU_MASK_SIMPLE(8) | IRQ_TYPE_LEVEL_LOW)>,
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:113: space before tab in indent.
++ 			     <GIC_PPI 11 (GIC_CPU_MASK_SIMPLE(8) | IRQ_TYPE_LEVEL_LOW)>,
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:114: space before tab in indent.
++ 			     <GIC_PPI 10 (GIC_CPU_MASK_SIMPLE(8) | IRQ_TYPE_LEVEL_LOW)>;
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:115: space before tab in indent.
++ 		clock-frequency = <19200000>;
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:116: space before tab in indent.
++ 	};
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:118: space before tab in indent.
++ 	soc@0 {
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:119: space before tab in indent.
++ 		compatible = "simple-bus";
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:120: space before tab in indent.
++ 		#address-cells = <2>;
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:121: space before tab in indent.
++ 		#size-cells = <2>;
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:122: space before tab in indent.
++ 		ranges = <0x0 0x0 0x0 0x0 0x10 0x0>;
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:124: space before tab in indent.
++ 		intc: interrupt-controller@17000000 {
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:125: space before tab in indent.
++ 			compatible = "arm,gic-v3";
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:126: space before tab in indent.
++ 			reg = <0x0 0x17000000 0x0 0x10000>,
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:127: space before tab in indent.
++ 			      <0x0 0x17080000 0x0 0x200000>;
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:131: space before tab in indent.
++ 			#interrupt-cells = <3>;
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:132: space before tab in indent.
++ 			interrupt-controller;
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:133: space before tab in indent.
++ 			#redistributor-regions = <1>;
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:134: space before tab in indent.
++ 			redistributor-stride = <0x0 0x40000>;
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:135: space before tab in indent.
++ 			interrupts = <GIC_PPI 9 IRQ_TYPE_LEVEL_HIGH>;
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:143: space before tab in indent.
++ 		};
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:144: space before tab in indent.
++ 	};
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:146: space before tab in indent.
++ 	chosen {
+codex-artifacts/history/20260629T000556Z/logs/codex-terminal-tail.log:147: space before tab in indent.
++ 	};
+codex-artifacts/latest/logs/codex-terminal-tail.log:80: space before tab in indent.
++ 	#address-cells = <2>;
+codex-artifacts/latest/logs/codex-terminal-tail.log:81: space before tab in indent.
++ 	#size-cells = <2>;
+codex-artifacts/latest/logs/codex-terminal-tail.log:82: space before tab in indent.
++ 	interrupt-parent = <&intc>;
+codex-artifacts/latest/logs/codex-terminal-tail.log:84: space before tab in indent.
++ 	clocks {
+codex-artifacts/latest/logs/codex-terminal-tail.log:85: space before tab in indent.
++ 		bi_tcxo: clock-19200000 {
+codex-artifacts/latest/logs/codex-terminal-tail.log:86: space before tab in indent.
++ 			compatible = "fixed-clock";
+codex-artifacts/latest/logs/codex-terminal-tail.log:87: space before tab in indent.
++ 			#clock-cells = <0>;
+codex-artifacts/latest/logs/codex-terminal-tail.log:88: space before tab in indent.
++ 			clock-frequency = <19200000>;
+codex-artifacts/latest/logs/codex-terminal-tail.log:89: space before tab in indent.
++ 		};
+codex-artifacts/latest/logs/codex-terminal-tail.log:91: space before tab in indent.
++ 		sleep_clk: clock-32768 {
+codex-artifacts/latest/logs/codex-terminal-tail.log:92: space before tab in indent.
++ 			compatible = "fixed-clock";
+codex-artifacts/latest/logs/codex-terminal-tail.log:93: space before tab in indent.
++ 			#clock-cells = <0>;
+codex-artifacts/latest/logs/codex-terminal-tail.log:94: space before tab in indent.
++ 			clock-frequency = <32768>;
+codex-artifacts/latest/logs/codex-terminal-tail.log:95: space before tab in indent.
++ 		};
+codex-artifacts/latest/logs/codex-terminal-tail.log:96: space before tab in indent.
++ 	};
+codex-artifacts/latest/logs/codex-terminal-tail.log:98: space before tab in indent.
++ 	firmware {
+codex-artifacts/latest/logs/codex-terminal-tail.log:99: space before tab in indent.
++ 		scm: scm {
+codex-artifacts/latest/logs/codex-terminal-tail.log:100: space before tab in indent.
++ 			compatible = "qcom,scm-canoe", "qcom,scm";
+codex-artifacts/latest/logs/codex-terminal-tail.log:101: space before tab in indent.
++ 		};
+codex-artifacts/latest/logs/codex-terminal-tail.log:102: space before tab in indent.
++ 	};
+codex-artifacts/latest/logs/codex-terminal-tail.log:104: space before tab in indent.
++ 	psci {
+codex-artifacts/latest/logs/codex-terminal-tail.log:105: space before tab in indent.
++ 		compatible = "arm,psci-1.0";
+codex-artifacts/latest/logs/codex-terminal-tail.log:106: space before tab in indent.
++ 		method = "smc";
+codex-artifacts/latest/logs/codex-terminal-tail.log:107: space before tab in indent.
++ 	};
+codex-artifacts/latest/logs/codex-terminal-tail.log:109: space before tab in indent.
++ 	timer {
+codex-artifacts/latest/logs/codex-terminal-tail.log:110: space before tab in indent.
++ 		compatible = "arm,armv8-timer";
+codex-artifacts/latest/logs/codex-terminal-tail.log:111: space before tab in indent.
++ 		interrupts = <GIC_PPI 13 (GIC_CPU_MASK_SIMPLE(8) | IRQ_TYPE_LEVEL_LOW)>,
+codex-artifacts/latest/logs/codex-terminal-tail.log:112: space before tab in indent.
++ 			     <GIC_PPI 14 (GIC_CPU_MASK_SIMPLE(8) | IRQ_TYPE_LEVEL_LOW)>,
+codex-artifacts/latest/logs/codex-terminal-tail.log:113: space before tab in indent.
++ 			     <GIC_PPI 11 (GIC_CPU_MASK_SIMPLE(8) | IRQ_TYPE_LEVEL_LOW)>,
+codex-artifacts/latest/logs/codex-terminal-tail.log:114: space before tab in indent.
++ 			     <GIC_PPI 10 (GIC_CPU_MASK_SIMPLE(8) | IRQ_TYPE_LEVEL_LOW)>;
+codex-artifacts/latest/logs/codex-terminal-tail.log:115: space before tab in indent.
++ 		clock-frequency = <19200000>;
+codex-artifacts/latest/logs/codex-terminal-tail.log:116: space before tab in indent.
++ 	};
+codex-artifacts/latest/logs/codex-terminal-tail.log:118: space before tab in indent.
++ 	soc@0 {
+codex-artifacts/latest/logs/codex-terminal-tail.log:119: space before tab in indent.
++ 		compatible = "simple-bus";
+codex-artifacts/latest/logs/codex-terminal-tail.log:120: space before tab in indent.
++ 		#address-cells = <2>;
+codex-artifacts/latest/logs/codex-terminal-tail.log:121: space before tab in indent.
++ 		#size-cells = <2>;
+codex-artifacts/latest/logs/codex-terminal-tail.log:122: space before tab in indent.
++ 		ranges = <0x0 0x0 0x0 0x0 0x10 0x0>;
+codex-artifacts/latest/logs/codex-terminal-tail.log:124: space before tab in indent.
++ 		intc: interrupt-controller@17000000 {
+codex-artifacts/latest/logs/codex-terminal-tail.log:125: space before tab in indent.
++ 			compatible = "arm,gic-v3";
+codex-artifacts/latest/logs/codex-terminal-tail.log:126: space before tab in indent.
++ 			reg = <0x0 0x17000000 0x0 0x10000>,
+codex-artifacts/latest/logs/codex-terminal-tail.log:127: space before tab in indent.
++ 			      <0x0 0x17080000 0x0 0x200000>;
+codex-artifacts/latest/logs/codex-terminal-tail.log:131: space before tab in indent.
++ 			#interrupt-cells = <3>;
+codex-artifacts/latest/logs/codex-terminal-tail.log:132: space before tab in indent.
++ 			interrupt-controller;
+codex-artifacts/latest/logs/codex-terminal-tail.log:133: space before tab in indent.
++ 			#redistributor-regions = <1>;
+codex-artifacts/latest/logs/codex-terminal-tail.log:134: space before tab in indent.
++ 			redistributor-stride = <0x0 0x40000>;
+codex-artifacts/latest/logs/codex-terminal-tail.log:135: space before tab in indent.
++ 			interrupts = <GIC_PPI 9 IRQ_TYPE_LEVEL_HIGH>;
+codex-artifacts/latest/logs/codex-terminal-tail.log:143: space before tab in indent.
++ 		};
+codex-artifacts/latest/logs/codex-terminal-tail.log:144: space before tab in indent.
++ 	};
+codex-artifacts/latest/logs/codex-terminal-tail.log:146: space before tab in indent.
++ 	chosen {
+codex-artifacts/latest/logs/codex-terminal-tail.log:147: space before tab in indent.
++ 	};
+
+===== report-fetch-1.log =====
+From https://github.com/travismills82/oneplus15-sm8850-mainline-port
+ * branch                codex/reports -> FETCH_HEAD
+
+===== report-worktree-1.log =====
+Preparing worktree (detached HEAD 58fc06891)
+Updating files:  25% (24394/93934)Updating files:  26% (24423/93934)Updating files:  27% (25363/93934)Updating files:  28% (26302/93934)Updating files:  29% (27241/93934)Updating files:  30% (28181/93934)Updating files:  31% (29120/93934)Updating files:  32% (30059/93934)Updating files:  33% (30999/93934)Updating files:  34% (31938/93934)Updating files:  35% (32877/93934)Updating files:  36% (33817/93934)Updating files:  37% (34756/93934)Updating files:  38% (35695/93934)Updating files:  39% (36635/93934)Updating files:  39% (37504/93934)Updating files:  40% (37574/93934)Updating files:  41% (38513/93934)Updating files:  41% (39046/93934)Updating files:  42% (39453/93934)Updating files:  43% (40392/93934)Updating files:  44% (41331/93934)Updating files:  45% (42271/93934)Updating files:  46% (43210/93934)Updating files:  47% (44149/93934)Updating files:  48% (45089/93934)Updating files:  49% (46028/93934)Updating files:  50% (46967/93934)Updating files:  51% (47907/93934)Updating files:  52% (48846/93934)Updating files:  53% (49786/93934)Updating files:  54% (50725/93934)Updating files:  55% (51664/93934)Updating files:  56% (52604/93934)Updating files:  56% (52832/93934)Updating files:  57% (53543/93934)Updating files:  58% (54482/93934)Updating files:  59% (55422/93934)Updating files:  60% (56361/93934)Updating files:  61% (57300/93934)Updating files:  62% (58240/93934)Updating files:  63% (59179/93934)Updating files:  64% (60118/93934)Updating files:  65% (61058/93934)Updating files:  66% (61997/93934)Updating files:  67% (62936/93934)Updating files:  67% (63477/93934)Updating files:  68% (63876/93934)Updating files:  69% (64815/93934)Updating files:  70% (65754/93934)Updating files:  71% (66694/93934)Updating files:  72% (67633/93934)Updating files:  73% (68572/93934)Updating files:  74% (69512/93934)Updating files:  75% (70451/93934)Updating files:  76% (71390/93934)Updating files:  77% (72330/93934)Updating files:  78% (73269/93934)Updating files:  79% (74208/93934)Updating files:  80% (75148/93934)Updating files:  81% (76087/93934)Updating files:  82% (77026/93934)Updating files:  83% (77966/93934)Updating files:  83% (78240/93934)Updating files:  84% (78905/93934)Updating files:  85% (79844/93934)Updating files:  86% (80784/93934)Updating files:  87% (81723/93934)Updating files:  88% (82662/93934)Updating files:  89% (83602/93934)Updating files:  90% (84541/93934)Updating files:  91% (85480/93934)Updating files:  92% (86420/93934)Updating files:  93% (87359/93934)Updating files:  94% (88298/93934)Updating files:  95% (89238/93934)Updating files:  96% (90177/93934)Updating files:  97% (91116/93934)Updating files:  98% (92056/93934)Updating files:  99% (92995/93934)Updating files: 100% (93934/93934)Updating files: 100% (93934/93934), done.
+HEAD is now at 58fc06891 artifacts: publish Canoe timer validation 20260628T233840Z
