@@ -1,0 +1,7 @@
+commit beb12cb6b78a6b08da64a3f104bb74f87f1bd4ec
+Author: Travis Mills <travismills82@gmail.com>
+Commit: Travis Mills <travismills82@gmail.com>
+
+    dt-bindings: interrupt-controller: add Canoe PDC
+
+    Signed-off-by: Travis Mills <travismills82@gmail.com>

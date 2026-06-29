@@ -1,10 +1,9 @@
 # Latest Codex artifact handoff
 
-- Latest task: Canoe GIC ITS validation
-- Published UTC: `20260629T002624Z-its-recovery-1`
-- Publication mode: `recovery-only; no rebuild`
-- Source branch: `port/canoe-gic-its-v7.1`
-- Source commit: `6840ea2042571180da305e038a53fcc6b4c1075d`
+- Latest task: Canoe PDC binding validation
+- Published UTC: `20260629T004414Z-pdc-binding-1`
+- Source branch: `port/canoe-pdc-binding-v7.1`
+- Source commit: `beb12cb6b78a6b08da64a3f104bb74f87f1bd4ec`
 - Validation result: `passed`
 
 See `codex-artifacts/latest/MANIFEST.md`.
