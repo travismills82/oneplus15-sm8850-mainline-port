@@ -1,9 +1,10 @@
 # Latest Codex artifact handoff
 
-- Latest task: Canoe PDC binding validation
-- Published UTC: `20260629T005242Z-pdc-binding-1`
-- Source branch: `port/canoe-pdc-binding-v7.1`
-- Source commit: `beb12cb6b78a6b08da64a3f104bb74f87f1bd4ec`
+- Latest task: Canoe PDC DTS validation
+- Published UTC: `20260629T021824Z-pdc-recovery-1`
+- Source branch: `port/canoe-pdc-v7.1`
+- Source commit: `ee6c5f7564d87bb7ec1041799a6a00bec9fd36eb`
 - Validation result: `passed`
+- Publication mode: `compiled-check recovery`
 
 See `codex-artifacts/latest/MANIFEST.md`.

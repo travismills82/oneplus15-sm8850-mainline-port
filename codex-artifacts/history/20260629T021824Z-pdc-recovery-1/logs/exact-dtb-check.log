@@ -1,0 +1,23 @@
+make: Entering directory '/tmp/canoe-pdc-validate.e8LHqJ/source'
+make  -C /tmp/canoe-pdc-validate.e8LHqJ/out \
+-f /tmp/canoe-pdc-validate.e8LHqJ/source/Makefile qcom/canoe-oneplus-15.dtb
+make[1]: Entering directory '/tmp/canoe-pdc-validate.e8LHqJ/out'
+make --no-print-directory -C /tmp/canoe-pdc-validate.e8LHqJ/out \
+-f /tmp/canoe-pdc-validate.e8LHqJ/source/Makefile qcom/canoe-oneplus-15.dtb
+set -e; mkdir -p include/config/; trap "rm -f include/config/.tmp_kernel.release" EXIT; { /tmp/canoe-pdc-validate.e8LHqJ/source/scripts/setlocalversion /tmp/canoe-pdc-validate.e8LHqJ/source; } > include/config/.tmp_kernel.release; if [ ! -r include/config/kernel.release ] || ! cmp -s include/config/kernel.release include/config/.tmp_kernel.release; then : '  UPD     include/config/kernel.release'; mv -f include/config/.tmp_kernel.release include/config/kernel.release; fi
+make -f /tmp/canoe-pdc-validate.e8LHqJ/source/scripts/Makefile.build obj=scripts/basic
+make -f /tmp/canoe-pdc-validate.e8LHqJ/source/scripts/Makefile.build obj=scripts/dtc
+make -f /tmp/canoe-pdc-validate.e8LHqJ/source/scripts/Makefile.build obj=Documentation/devicetree/bindings
+# SCHEMA  Documentation/devicetree/bindings/processed-schema.json
+  f=$(mktemp) ; find /tmp/canoe-pdc-validate.e8LHqJ/source/Documentation/devicetree/bindings \( -name '*.yaml' ! -name 'processed-schema*' \) > $f ; dt-mk-schema -j  @$f > Documentation/devicetree/bindings/processed-schema.json ; rm -f $f
+make -f /tmp/canoe-pdc-validate.e8LHqJ/source/scripts/Makefile.build obj=arch/arm64/boot/dts arch/arm64/boot/dts/qcom/canoe-oneplus-15.dtb
+make -f /tmp/canoe-pdc-validate.e8LHqJ/source/scripts/Makefile.build obj=arch/arm64/boot/dts/qcom \
+need-builtin= \
+need-modorder= \
+arch/arm64/boot/dts/qcom/canoe-oneplus-15.dtb
+# DTC [C] arch/arm64/boot/dts/qcom/canoe-oneplus-15.dtb
+  clang -E -Wp,-MMD,arch/arm64/boot/dts/qcom/.canoe-oneplus-15.dtb.d.pre.tmp -nostdinc -I /tmp/canoe-pdc-validate.e8LHqJ/source/scripts/dtc/include-prefixes -undef -D__DTS__ -x assembler-with-cpp -o arch/arm64/boot/dts/qcom/.canoe-oneplus-15.dtb.dts.tmp /tmp/canoe-pdc-validate.e8LHqJ/source/arch/arm64/boot/dts/qcom/canoe-oneplus-15.dts ; ./scripts/dtc/dtc -o arch/arm64/boot/dts/qcom/canoe-oneplus-15.dtb -b 0 -i/tmp/canoe-pdc-validate.e8LHqJ/source/arch/arm64/boot/dts/qcom/ -i/tmp/canoe-pdc-validate.e8LHqJ/source/scripts/dtc/include-prefixes -Wno-unique_unit_address -Wunique_unit_address_if_enabled   -d arch/arm64/boot/dts/qcom/.canoe-oneplus-15.dtb.d.dtc.tmp arch/arm64/boot/dts/qcom/.canoe-oneplus-15.dtb.dts.tmp ; cat arch/arm64/boot/dts/qcom/.canoe-oneplus-15.dtb.d.pre.tmp arch/arm64/boot/dts/qcom/.canoe-oneplus-15.dtb.d.dtc.tmp > arch/arm64/boot/dts/qcom/.canoe-oneplus-15.dtb.d ; dt-validate -l Documentation/devicetree/bindings/arm/qcom.yaml:Documentation/devicetree/bindings/clock/fixed-clock.yaml:Documentation/devicetree/bindings/arm/psci.yaml:Documentation/devicetree/bindings/firmware/qcom,scm.yaml:Documentation/devicetree/bindings/interrupt-controller/arm,gic-v3.yaml:Documentation/devicetree/bindings/timer/arm,arch_timer.yaml:Documentation/devicetree/bindings/interrupt-controller/qcom,pdc.yaml -u /tmp/canoe-pdc-validate.e8LHqJ/source/Documentation/devicetree/bindings -p ./Documentation/devicetree/bindings/processed-schema.json arch/arm64/boot/dts/qcom/canoe-oneplus-15.dtb || true
+/tmp/canoe-pdc-validate.e8LHqJ/source/arch/arm64/boot/dts/qcom/canoe.dtsi:76.4-11: Warning (ranges_format): /soc@0/interrupt-controller@17000000:ranges: empty "ranges" property but its #address-cells (1) differs from /soc@0 (2)
+/tmp/canoe-pdc-validate.e8LHqJ/source/arch/arm64/boot/dts/qcom/canoe.dtsi:76.4-11: Warning (ranges_format): /soc@0/interrupt-controller@17000000:ranges: empty "ranges" property but its #size-cells (1) differs from /soc@0 (2)
+make[1]: Leaving directory '/tmp/canoe-pdc-validate.e8LHqJ/out'
+make: Leaving directory '/tmp/canoe-pdc-validate.e8LHqJ/source'
