@@ -1,8 +1,9 @@
 # Latest Codex artifact handoff
 
-- Latest task: Canoe IPCC DTS validation
-- Source branch: `port/canoe-ipcc-v7.1`
-- Source commit: `4db4ef22947c65d3acf79987d05574f471c59033`
+- Latest task: Canoe AOSS QMP binding validation
+- Published UTC: `20260629T225358Z-aoss-qmp-binding-1`
+- Source branch: `port/canoe-aoss-qmp-binding-v7.1-clean`
+- Source commit: `0f4d29f65ac4c5cd48a44e764f3df4d0b1ea4c05`
 - Validation result: `passed`
 
 See `codex-artifacts/latest/MANIFEST.md`.
