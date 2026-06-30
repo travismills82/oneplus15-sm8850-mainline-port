@@ -1,0 +1,7 @@
+commit 110110b12c40466e42480c223235bbe6078b270e
+Author: Travis Mills <travismills82@gmail.com>
+Commit: Travis Mills <travismills82@gmail.com>
+
+    arm64: dts: qcom: add Canoe AOSS QMP
+
+    Signed-off-by: Travis Mills <travismills82@gmail.com>
