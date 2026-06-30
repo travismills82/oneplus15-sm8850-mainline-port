@@ -1,0 +1,19 @@
+make: Entering directory '/tmp/canoe-aoss-qmp-validate.Zgy62k/source'
+make[1]: Entering directory '/tmp/canoe-aoss-qmp-validate.Zgy62k/out'
+  UPD     include/config/kernel.release
+  HOSTCC  scripts/dtc/libfdt/fdt.o
+  HOSTCC  scripts/dtc/libfdt/fdt_ro.o
+  HOSTCC  scripts/dtc/libfdt/fdt_wip.o
+  HOSTCC  scripts/dtc/libfdt/fdt_sw.o
+  HOSTCC  scripts/dtc/libfdt/fdt_rw.o
+  HOSTCC  scripts/dtc/libfdt/fdt_strerror.o
+  HOSTCC  scripts/dtc/libfdt/fdt_empty_tree.o
+  HOSTCC  scripts/dtc/libfdt/fdt_addresses.o
+  HOSTCC  scripts/dtc/libfdt/fdt_overlay.o
+  HOSTCC  scripts/dtc/fdtoverlay.o
+  HOSTLD  scripts/dtc/fdtoverlay
+  DTC     arch/arm64/boot/dts/qcom/canoe-oneplus-15.dtb
+/tmp/canoe-aoss-qmp-validate.Zgy62k/source/arch/arm64/boot/dts/qcom/canoe.dtsi:101.4-11: Warning (ranges_format): /soc@0/interrupt-controller@17000000:ranges: empty "ranges" property but its #address-cells (1) differs from /soc@0 (2)
+/tmp/canoe-aoss-qmp-validate.Zgy62k/source/arch/arm64/boot/dts/qcom/canoe.dtsi:101.4-11: Warning (ranges_format): /soc@0/interrupt-controller@17000000:ranges: empty "ranges" property but its #size-cells (1) differs from /soc@0 (2)
+make[1]: Leaving directory '/tmp/canoe-aoss-qmp-validate.Zgy62k/out'
+make: Leaving directory '/tmp/canoe-aoss-qmp-validate.Zgy62k/source'

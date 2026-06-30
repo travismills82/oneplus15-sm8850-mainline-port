@@ -1,9 +1,9 @@
 # Latest Codex artifact handoff
 
-- Latest task: Canoe AOSS QMP binding validation
-- Published UTC: `20260630T000043Z-aoss-qmp-binding-1`
-- Source branch: `port/canoe-aoss-qmp-binding-v7.1-clean`
-- Source commit: `0f4d29f65ac4c5cd48a44e764f3df4d0b1ea4c05`
+- Latest task: Canoe AOSS QMP DTS validation
+- Published UTC: `20260630T021421Z-aoss-qmp-1`
+- Source branch: `port/canoe-aoss-qmp-v7.1-clean`
+- Source commit: `110110b12c40466e42480c223235bbe6078b270e`
 - Validation result: `passed`
 
 See `codex-artifacts/latest/MANIFEST.md`.
