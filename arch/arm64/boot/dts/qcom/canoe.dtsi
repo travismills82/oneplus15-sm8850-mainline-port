@@ -4,6 +4,7 @@
  */
 
 #include <dt-bindings/interrupt-controller/arm-gic.h>
+#include <dt-bindings/mailbox/qcom-ipcc.h>
 
 / {
 	#address-cells = <2>;
@@ -76,6 +77,19 @@
 			#interrupt-cells = <2>;
 			interrupt-parent = <&intc>;
 			interrupt-controller;
+		};
+
+		aoss_qmp: power-management@c300000 {
+			compatible = "qcom,canoe-aoss-qmp", "qcom,aoss-qmp";
+			reg = <0x0 0xc300000 0x0 0x400>;
+
+			interrupt-parent = <&ipcc>;
+			interrupts-extended = <&ipcc IPCC_CLIENT_AOP IPCC_MPROC_SIGNAL_GLINK_QMP
+						     IRQ_TYPE_EDGE_RISING>;
+
+			mboxes = <&ipcc IPCC_CLIENT_AOP IPCC_MPROC_SIGNAL_GLINK_QMP>;
+
+			#clock-cells = <0>;
 		};
 
 		intc: interrupt-controller@17000000 {
