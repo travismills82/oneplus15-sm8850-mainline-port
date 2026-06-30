@@ -1,0 +1,7 @@
+commit 0f4d29f65ac4c5cd48a44e764f3df4d0b1ea4c05
+Author: Travis Mills <travismills82@gmail.com>
+Commit: Travis Mills <travismills82@gmail.com>
+
+    dt-bindings: soc: qcom: add Canoe AOSS QMP
+
+    Signed-off-by: Travis Mills <travismills82@gmail.com>
