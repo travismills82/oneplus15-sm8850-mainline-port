@@ -1,0 +1,13 @@
+arm64: dts: qcom: add Canoe TLMM
+
+Describe the Canoe top-level pin controller at 0x0f000000 using the
+dedicated driver and binding already present in the tree.
+
+Wire the summary interrupt to GIC SPI 208, use the merged PDC as the
+wakeup parent, expose all 218 GPIOs through gpio-ranges, and translate
+the firmware-owned GPIO list into mainline gpio-reserved-ranges tuples.
+
+Limit this milestone to the TLMM provider itself; pin states and
+peripheral consumers remain out of scope.
+
+Signed-off-by: Travis Mills <travismills82@gmail.com>
