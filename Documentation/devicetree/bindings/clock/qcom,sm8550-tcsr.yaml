@@ -26,6 +26,7 @@ properties:
   compatible:
     items:
       - enum:
+          - qcom,canoe-tcsr
           - qcom,eliza-tcsr
           - qcom,glymur-tcsr
           - qcom,kaanapali-tcsr
